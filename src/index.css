@@ -67,3 +67,7 @@
     @apply bg-background text-foreground;
   }
 }
+
+.gradient-angle {
+  background-image: linear-gradient(-200deg, #33257f, #5f35b8);
+}
