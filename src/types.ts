@@ -21,3 +21,10 @@ export type LitNetworkContext = {
   };
   data: LitNetworkContextContract[];
 };
+
+export interface PKPInfo {
+  tokenId: string;
+  publicKey: string;
+  ethAddress: string;
+  btcAddress?: string;
+}

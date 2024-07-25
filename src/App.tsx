@@ -1,4 +1,4 @@
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,7 +24,6 @@ import {
   NETWORK_CONTEXT_BY_NETWORK,
 } from "@lit-protocol/constants";
 import Editor from "@monaco-editor/react";
-import { readContracts, writeContract } from "@wagmi/core";
 import {
   Check,
   ChevronDown,
@@ -41,6 +40,7 @@ import {
   useConfig,
   useConnect,
   useDisconnect,
+  useBalance,
 } from "wagmi";
 import { NetworkSelector } from "./hooks/NetworkSelector";
 import { useNetworkSelection } from "./hooks/useNetworkSelection";
@@ -48,6 +48,9 @@ import { useSwitchNetwork } from "./hooks/useSwitchNetwork";
 import { getTabValue, TabType, VALID_TABS } from "./utils/tabs";
 import { LitNetworkContext } from "./types";
 import { ContractType, getContractData } from "./utils/contracts";
+import { FAUCET_URL_BY_NETWORK } from "./utils/mappers";
+import MintNextUI from "./func-components/write/mintNextUi";
+import PKPsUI from "./func-components/read/pkpsUi";
 
 const shortenAddress = (address: string) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -157,18 +160,29 @@ const App = () => {
       console.log(`${prefix} Switching network...`);
       switchNetwork(chainInfo.chainId);
     }
+
+    // Save the selected network to local storage
+    localStorage.setItem("selectedNetwork", network);
   };
 
   const { selectedNetwork, handleNetworkChange, networkOptions } =
     useNetworkSelection(handleCustomNetworkChange);
 
-  // const result = useReadContract({
-  //   abi: getContractData(selectedNetwork, "PKPNFT").ABI,
-  //   address: getContractData(selectedNetwork, "PKPNFT").address,
-  //   functionName: "mintCost",
-  // });
+  useEffect(() => {
+    const savedNetwork = localStorage.getItem(
+      "selectedNetwork"
+    ) as LIT_NETWORK_TYPES | null;
 
-  // console.log("result", result);
+    console.log("savedNetwork:", savedNetwork);
+    console.log("networkOptions:", networkOptions);
+    const networkOptionValues = networkOptions.map((option) => option.value);
+
+    if (savedNetwork && networkOptionValues.includes(savedNetwork as any)) {
+      console.log("Setting network from local storage:", savedNetwork);
+      handleNetworkChange(savedNetwork);
+    }
+  }, []);
+
   const config = useConfig();
 
   const useNetwork = () => {
@@ -191,6 +205,11 @@ const App = () => {
   );
 
   const account = useAccount();
+  // -- balance
+  const userBalance = useBalance({
+    address: account.address,
+  });
+
   const { connectors, connect, status, error } = useConnect();
   const { disconnect } = useDisconnect();
   const { chain } = useNetwork();
@@ -297,24 +316,48 @@ const App = () => {
               ) : (
                 <Button
                   variant="default"
-                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200 "
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
                 >
                   <Wallet className="mr-2 h-4 w-4" />
                   Connect Wallet
                 </Button>
               )}
             </PopoverTrigger>
+
             <PopoverContent className="w-80">
               {account.status === "connected" ? (
                 <div>
                   <div className="text-xs text-gray-400 text-center">
-                    Connected with: {account.connector?.name}
+                    {/* Connected with: {account.connector?.name} */}
+                    <img
+                      src={account.connector?.icon}
+                      alt={`${account.connector?.name} logo`}
+                      className="h-6 w-6 mx-auto"
+                    />
+                  </div>
+                  <div className="mt-2 text-center">
+                    <Badge className="w-full flex" variant="outline">
+                      <span className="m-auto"> {chain?.name}</span>
+                    </Badge>
                   </div>
 
-                  <div className="mt-2">
-                    <Badge className="w-full" variant="outline">
-                      {chain?.name}
-                    </Badge>
+                  <div className="mt-2 text-center">
+                    <p className="text-xl text-gray-500">
+                      {Number(userBalance.data?.formatted).toFixed(6)}{" "}
+                      {userBalance.data?.symbol}
+                    </p>
+                    {FAUCET_URL_BY_NETWORK[LIT_NETWORK[selectedNetwork]] && (
+                      <a
+                        href={
+                          FAUCET_URL_BY_NETWORK[LIT_NETWORK[selectedNetwork]]
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline text-xs"
+                      >
+                        Get Test Tokens
+                      </a>
+                    )}
                   </div>
 
                   <div className="flex items-center mt-2 mb-2 bg-gray-100 rounded-md">
@@ -367,7 +410,6 @@ const App = () => {
                         alt={`${connector.name} logo`}
                         className="w-6 h-6"
                       />
-
                       <span>{connector.name}</span>
                     </Button>
                   ))}
@@ -436,7 +478,7 @@ const App = () => {
                   value={getTabValue("")}
                   className="bg-red data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
                 >
-                  Mint a new PKP
+                  App
                 </TabsTrigger>
                 <TabsTrigger
                   value={getTabValue("create-action")}
@@ -458,76 +500,41 @@ const App = () => {
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="">
-                <button
-                  onClick={async () => {
-                    const pkpNftContract = getContractData(
-                      selectedNetwork,
-                      "PKPNFT"
-                    );
-                    console.log("pkpNftContract:", pkpNftContract);
-                    const _tx = await writeContract(config, {
-                      abi: [
-                        {
-                          inputs: [
-                            {
-                              internalType: "uint256",
-                              name: "keyType",
-                              type: "uint256",
-                            },
-                          ],
-                          name: "mintNext",
-                          outputs: [
-                            {
-                              internalType: "uint256",
-                              name: "",
-                              type: "uint256",
-                            },
-                          ],
-                          stateMutability: "payable",
-                          type: "function",
-                        },
-                      ],
-                      address: pkpNftContract.address,
-                      functionName: "mintNext",
-                      args: [2n],
-                      // value: 2n,
-                    });
-                    console.log("tx:", _tx);
-
-                    return;
-
-                    const result = await readContracts(config, {
-                      contracts: [
-                        {
-                          address: pkpNftContract.address,
-                          abi: pkpNftContract.ABI,
-                          functionName: "mintCost",
-                        },
-                      ],
-                    });
-
-                    if (result[0].status === "failure") {
-                      console.error("Error reading contract:", result[0].error);
-                      return;
-                    }
-
-                    const mintCost = result[0].result;
-
-                    console.log("Mint cost:", mintCost);
-
-                    const tx = await writeContract(config, {
-                      abi: pkpNftContract.ABI,
-                      address: pkpNftContract.address,
-                      functionName: "mintNext",
-                      args: [2n],
-                      value: mintCost,
-                    });
-
-                    console.log("Mint transaction:", tx);
-                  }}
-                >
-                  Mint
-                </button>
+                {account.status === "connected" ? (
+                  <div className="mt-4">
+                    <MintNextUI
+                      config={config}
+                      contract={getContractData(selectedNetwork, "PKPNFT")}
+                      explorerUrl={`${selectedChainInfo.blockExplorerUrls[0]}/tx/`}
+                    />
+                  </div>
+                ) : (
+                  <div className="mt-4">
+                    <Alert className="border-l-4 border-green-500 bg-green-50 p-4 rounded-md shadow-md">
+                      <AlertTitle className="text-xl font-semibold text-green-700">
+                        Welcome to Lit Explorer! 👋🏻
+                      </AlertTitle>
+                      <AlertDescription className="text-green-600">
+                        <p>
+                          Please sign in to your web3 account to access full
+                          features.
+                        </p>
+                        <p className="mt-2">
+                          To learn more about Programmable Key Pairs (PKPs) and
+                          Lit Actions, read our{" "}
+                          <a
+                            target="_blank"
+                            href="https://developer.litprotocol.com/"
+                            className="text-blue-500 hover:underline"
+                          >
+                            documentation
+                          </a>
+                          .
+                        </p>
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                )}
               </TabsContent>
               <TabsContent value="create-action">
                 <div className="space-y-4">
@@ -561,7 +568,7 @@ const App = () => {
               </TabsContent>
               <TabsContent value="profile">
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Your NFTs</h3>
+                  {/* <h3 className="text-lg font-semibold">Your NFTs</h3>
                   <div className="grid grid-cols-3 gap-4">
                     {mockNFTs.map((nft) => (
                       <Card key={nft.id} className="border border-purple-200">
@@ -575,7 +582,17 @@ const App = () => {
                         </CardContent>
                       </Card>
                     ))}
-                  </div>
+                  </div> */}
+                  <PKPsUI
+                    config={config}
+                    contract={getContractData(selectedNetwork, "PKPNFT")}
+                    ownerAddress={account.address as string}
+                    pkpPermissionContract={getContractData(
+                      selectedNetwork,
+                      "PKPPermissions"
+                    )}
+                    selectedNetwork={selectedNetwork}
+                  />
                 </div>
               </TabsContent>
               <TabsContent value="contracts">

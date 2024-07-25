@@ -19,6 +19,11 @@ export type ContractType =
   | "Allowlist"
   | "PaymentDelegation";
 
+export type ContractData = {
+  address: string;
+  ABI: any;
+};
+
 /**
  * Retrieves contract data for a given network.
  * @param network - The network type.
@@ -27,7 +32,7 @@ export type ContractType =
 export function getContractData(
   network: LIT_NETWORK_TYPES,
   contractName: ContractType
-) {
+): ContractData {
   const data = NETWORK_CONTEXT_BY_NETWORK[LIT_NETWORK[network]];
 
   const contractData = (data as typeof datil).data.filter(
