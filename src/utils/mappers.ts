@@ -16,3 +16,13 @@ export const FAUCET_URL_BY_NETWORK: {
   "datil-dev": YELLOWSTONE_FAUCET_URL,
   "datil-test": YELLOWSTONE_FAUCET_URL,
 } as const;
+
+export const USE_GAS_ADJUSTMENT_BY_NETWORK: {
+  [key: string]: boolean;
+} = {
+  cayenne: false,
+  manzano: false,
+  habanero: false,
+  "datil-dev": true,
+  "datil-test": true,
+};

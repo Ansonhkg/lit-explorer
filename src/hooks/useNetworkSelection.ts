@@ -13,7 +13,7 @@ const NETWORKS = (Object.keys(LIT_NETWORK) as (keyof typeof LIT_NETWORK)[])
     (a, b) => (a.includes("Datil") ? -1 : 1) - (b.includes("Datil") ? -1 : 1)
   );
 
-export const useNetworkSelection = (
+const useNetworkSelection = (
   onNetworkChange?: (network: LIT_NETWORK_TYPES) => void
 ) => {
   const [selectedNetwork, setSelectedNetwork] =
@@ -28,7 +28,6 @@ export const useNetworkSelection = (
     setSelectedNetwork(network);
 
     if (onNetworkChange) {
-      console.log(`[useNetworkSelection] onNetworkChange: ${network}`);
       onNetworkChange(network);
     }
   };
@@ -48,3 +47,5 @@ export const useNetworkSelection = (
     networkOptions,
   };
 };
+
+export default useNetworkSelection;

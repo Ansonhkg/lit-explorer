@@ -1,7 +1,6 @@
-import { http, createConfig } from "wagmi";
-import { Chain, mainnet, sepolia } from "wagmi/chains";
 import { metamaskChainInfo } from "@lit-protocol/constants";
-import { coinbaseWallet, injected, walletConnect } from "wagmi/connectors";
+import { createConfig, http } from "wagmi";
+import { Chain } from "wagmi/chains";
 
 export const yellowstoneChain: Chain = {
   ...metamaskChainInfo.yellowstone,

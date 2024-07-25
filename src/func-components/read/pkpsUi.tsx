@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { BaseUiProps } from "../types";
 import { readContracts } from "@wagmi/core";
 import { ContractData } from "@/utils/contracts";
@@ -14,9 +14,24 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Check, Copy, Key } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Key,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Search,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+// Configurable constants
+const TOKENS_PER_PAGE = 5;
+const INITIAL_FETCH_COUNT = TOKENS_PER_PAGE;
+const SUBSEQUENT_FETCH_COUNT = TOKENS_PER_PAGE;
 
 interface PKPsUIProp extends BaseUiProps {
   ownerAddress: string;
@@ -72,15 +87,14 @@ const PKPsUI: React.FC<PKPsUIProp> = ({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [tokens, setTokens] = useState<PKPInfo[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMoreTokens, setHasMoreTokens] = useState(true);
   const pkpNftContract = contract;
+  const [fetchIndex, setFetchIndex] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const getTokens = async () => {
-    console.log("Getting tokens...");
-    const _tokens: PKPInfo[] = [];
-    let index = 0;
-    let fetchTokens = true;
-
-    const fetchToken = async (index: number) => {
+  const fetchToken = useCallback(
+    async (index: number): Promise<PKPInfo | null> => {
       try {
         const result = await readContracts(config, {
           contracts: [
@@ -94,11 +108,10 @@ const PKPsUI: React.FC<PKPsUIProp> = ({
         });
 
         if (result[0].status === "failure") {
-          fetchTokens = false;
           return null;
         }
 
-        const tokenId = result[0].result;
+        const tokenId: any = result[0].result;
 
         const result2 = await readContracts(config, {
           contracts: [
@@ -112,7 +125,6 @@ const PKPsUI: React.FC<PKPsUIProp> = ({
         });
 
         if (result2[0].status === "failure") {
-          fetchTokens = false;
           return null;
         }
 
@@ -132,56 +144,107 @@ const PKPsUI: React.FC<PKPsUIProp> = ({
         };
       } catch (error) {
         console.error(`Error fetching token at index ${index}:`, error);
-        fetchTokens = false;
         return null;
       }
-    };
+    },
+    [
+      config,
+      pkpNftContract.address,
+      pkpNftContract.ABI,
+      pkpPermissionContract.address,
+      pkpPermissionContract.ABI,
+      ownerAddress,
+    ]
+  );
 
-    while (fetchTokens) {
-      const batch = await Promise.all([
-        fetchToken(index),
-        fetchToken(index + 1),
-        fetchToken(index + 2),
-      ]);
-
-      index += 3;
-
-      batch.forEach((token) => {
-        if (token !== null) _tokens.push(token as PKPInfo);
-      });
-
-      if (batch.every((token) => token === null)) {
-        fetchTokens = false;
+  const fetchTokens = useCallback(
+    async (startIndex: number, count: number) => {
+      const newTokens: PKPInfo[] = [];
+      for (let i = startIndex; i < startIndex + count; i++) {
+        const token = await fetchToken(i);
+        if (token) {
+          newTokens.push(token);
+        } else {
+          setHasMoreTokens(false);
+          break;
+        }
       }
-    }
-
-    console.log("Tokens:", _tokens);
-
-    const reveredOrderTokens = _tokens.reverse();
-    return reveredOrderTokens;
-  };
+      return newTokens;
+    },
+    [fetchToken]
+  );
 
   useEffect(() => {
-    const fetchData = async () => {
+    const loadInitialTokens = async () => {
       setIsLoading(true);
       setError(null);
+      setTokens([]);
+      setFetchIndex(0);
+      setHasMoreTokens(true);
       try {
-        const fetchedTokens = await getTokens();
-        setTokens(fetchedTokens);
+        const initialTokens = await fetchTokens(0, INITIAL_FETCH_COUNT);
+        setTokens(initialTokens);
+        setFetchIndex(INITIAL_FETCH_COUNT);
+        setIsLoading(false);
       } catch (err) {
         setError("Failed to fetch tokens. Please try again later.");
-      } finally {
         setIsLoading(false);
       }
     };
 
-    fetchData();
+    loadInitialTokens();
   }, [
+    fetchTokens,
     ownerAddress,
     pkpNftContract.address,
     pkpPermissionContract.address,
     selectedNetwork,
   ]);
+
+  useEffect(() => {
+    const loadMoreTokens = async () => {
+      if (!hasMoreTokens || isLoading) return;
+
+      try {
+        const moreTokens = await fetchTokens(
+          fetchIndex,
+          SUBSEQUENT_FETCH_COUNT
+        );
+        if (moreTokens.length === 0) {
+          setHasMoreTokens(false);
+        } else {
+          setTokens((prevTokens) => [...prevTokens, ...moreTokens]);
+          setFetchIndex((prevIndex) => prevIndex + moreTokens.length);
+        }
+      } catch (err) {
+        console.error("Error fetching more tokens:", err);
+        setHasMoreTokens(false);
+      }
+    };
+
+    loadMoreTokens();
+  }, [fetchTokens, fetchIndex, hasMoreTokens, isLoading]);
+
+  const filteredTokens = useMemo(() => {
+    if (!searchQuery) return tokens;
+    const lowercasedQuery = searchQuery.toLowerCase();
+    return tokens.filter(
+      (token) =>
+        token.tokenId.toString().includes(lowercasedQuery) ||
+        token.publicKey.toLowerCase().includes(lowercasedQuery) ||
+        token.ethAddress.toLowerCase().includes(lowercasedQuery)
+    );
+  }, [tokens, searchQuery]);
+
+  const pageCount = Math.ceil(filteredTokens.length / TOKENS_PER_PAGE);
+  const paginatedTokens = filteredTokens.slice(
+    (currentPage - 1) * TOKENS_PER_PAGE,
+    currentPage * TOKENS_PER_PAGE
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   if (isLoading) {
     return (
@@ -209,47 +272,90 @@ const PKPsUI: React.FC<PKPsUIProp> = ({
         <h2 className="text-lg font-semibold text-purple-700">
           Your PKP Tokens
         </h2>
-        <Badge variant="outline" className="text-xs">
-          {tokens.length} Token{tokens.length !== 1 ? "s" : ""}
-        </Badge>
-      </div>
-      {tokens.length > 0 ? (
-        <div className="border rounded-lg overflow-hidden">
-          <Table className="text-xs">
-            <TableHeader>
-              <TableRow className="bg-purple-50">
-                <TableHead className="w-1/4 text-purple-700">
-                  Token ID
-                </TableHead>
-                <TableHead className="w-1/2 text-purple-700">
-                  Public Key
-                </TableHead>
-                <TableHead className="w-1/4 text-purple-700">
-                  ETH Address
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tokens.map((token, index) => (
-                <TableRow
-                  key={token.tokenId.toString()}
-                  className={index % 2 === 0 ? "bg-white" : "bg-purple-50"}
-                >
-                  <TableCell>
-                    <CopyableCell content={token.tokenId.toString()} />
-                  </TableCell>
-                  <TableCell>
-                    {/* truncate */}
-                    <CopyableCell content={token.publicKey} />
-                  </TableCell>
-                  <TableCell>
-                    <CopyableCell content={token.ethAddress} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <div className="flex items-center space-x-2">
+          <Badge variant="outline" className="text-xs">
+            {filteredTokens.length} Token
+            {filteredTokens.length !== 1 ? "s" : ""}
+          </Badge>
+          {hasMoreTokens && (
+            <div className="flex items-center text-xs text-gray-500">
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+              Loading more...
+            </div>
+          )}
         </div>
+      </div>
+      <div className="flex items-center space-x-2">
+        <Search className="h-4 w-4 text-gray-400" />
+        <Input
+          type="text"
+          placeholder="Filter by Token ID, Public Key, or ETH Address"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-grow"
+        />
+      </div>
+      {filteredTokens.length > 0 ? (
+        <>
+          <div className="border rounded-lg overflow-hidden">
+            <Table className="text-xs">
+              <TableHeader>
+                <TableRow className="bg-purple-50">
+                  <TableHead className="w-1/4 text-purple-700">
+                    Token ID
+                  </TableHead>
+                  <TableHead className="w-1/2 text-purple-700">
+                    Public Key
+                  </TableHead>
+                  <TableHead className="w-1/4 text-purple-700">
+                    ETH Address
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedTokens.map((token, index) => (
+                  <TableRow
+                    key={token.tokenId.toString()}
+                    className={index % 2 === 0 ? "bg-white" : "bg-purple-50"}
+                  >
+                    <TableCell>
+                      <CopyableCell content={token.tokenId.toString()} />
+                    </TableCell>
+                    <TableCell>
+                      <CopyableCell content={token.publicKey} />
+                    </TableCell>
+                    <TableCell>
+                      <CopyableCell content={token.ethAddress} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="flex justify-between items-center mt-4">
+            <Button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              variant="outline"
+              size="sm"
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" /> Previous
+            </Button>
+            <span className="text-sm">
+              Page {currentPage} of {pageCount}
+            </span>
+            <Button
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, pageCount))
+              }
+              disabled={currentPage === pageCount}
+              variant="outline"
+              size="sm"
+            >
+              Next <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        </>
       ) : (
         <Alert>
           <Key className="h-4 w-4 mr-2" />

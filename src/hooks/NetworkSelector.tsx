@@ -14,14 +14,14 @@ interface NetworkSelectorProps {
   networkOptions: Array<{ value: string; label: string; icon: string }>;
 }
 
-export const NetworkSelector: React.FC<NetworkSelectorProps> = ({
+const NetworkSelector: React.FC<NetworkSelectorProps> = ({
   selectedNetwork,
   handleNetworkChange,
   networkOptions,
 }) => {
   return (
     <div className="space-y-2">
-      <h3 className="text-lg font-semibold">
+      <h3 className="text-xl font-semibold">
         🌶️ Hot Pick: Choose Your Network!
       </h3>
       <p className="text-xs opacity-50 hover:opacity-1 text-gray-600">
@@ -49,3 +49,5 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({
     </div>
   );
 };
+
+export default NetworkSelector;

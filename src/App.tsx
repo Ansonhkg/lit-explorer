@@ -42,15 +42,16 @@ import {
   useDisconnect,
   useBalance,
 } from "wagmi";
-import { NetworkSelector } from "./hooks/NetworkSelector";
-import { useNetworkSelection } from "./hooks/useNetworkSelection";
-import { useSwitchNetwork } from "./hooks/useSwitchNetwork";
+import NetworkSelector from "./hooks/NetworkSelector";
+import useNetworkSelection from "./hooks/useNetworkSelection";
+import useSwitchNetwork from "./hooks/useSwitchNetwork";
 import { getTabValue, TabType, VALID_TABS } from "./utils/tabs";
 import { LitNetworkContext } from "./types";
 import { ContractType, getContractData } from "./utils/contracts";
 import { FAUCET_URL_BY_NETWORK } from "./utils/mappers";
 import MintNextUI from "./func-components/write/mintNextUi";
 import PKPsUI from "./func-components/read/pkpsUi";
+import GetTestToken from "./components2/getTestToken";
 
 const shortenAddress = (address: string) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -148,16 +149,16 @@ const App = () => {
 
   // -- networks
   const handleCustomNetworkChange = async (network: LIT_NETWORK_TYPES) => {
-    const prefix = "handleCustomNetworkChange:";
+    // const prefix = "handleCustomNetworkChange:";
 
-    console.log(`${prefix} ${network}`);
+    // console.log(`${prefix} ${network}`);
 
     const chainInfo = METAMASK_CHAIN_INFO_BY_NETWORK[LIT_NETWORK[network]];
-    console.log(`${prefix} chain?.id:`, chain?.id);
-    console.log(`${prefix} chainInfo.chainId:`, chainInfo.chainId);
+    // console.log(`${prefix} chain?.id:`, chain?.id);
+    // console.log(`${prefix} chainInfo.chainId:`, chainInfo.chainId);
     // Automatically switch to the correct network if the user is connected to the wrong one
     if (chain?.id !== chainInfo.chainId) {
-      console.log(`${prefix} Switching network...`);
+      // console.log(`${prefix} Switching network...`);
       switchNetwork(chainInfo.chainId);
     }
 
@@ -173,8 +174,8 @@ const App = () => {
       "selectedNetwork"
     ) as LIT_NETWORK_TYPES | null;
 
-    console.log("savedNetwork:", savedNetwork);
-    console.log("networkOptions:", networkOptions);
+    // console.log("savedNetwork:", savedNetwork);
+    // console.log("networkOptions:", networkOptions);
     const networkOptionValues = networkOptions.map((option) => option.value);
 
     if (savedNetwork && networkOptionValues.includes(savedNetwork as any)) {
@@ -346,18 +347,7 @@ const App = () => {
                       {Number(userBalance.data?.formatted).toFixed(6)}{" "}
                       {userBalance.data?.symbol}
                     </p>
-                    {FAUCET_URL_BY_NETWORK[LIT_NETWORK[selectedNetwork]] && (
-                      <a
-                        href={
-                          FAUCET_URL_BY_NETWORK[LIT_NETWORK[selectedNetwork]]
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline text-xs"
-                      >
-                        Get Test Tokens
-                      </a>
-                    )}
+                    <GetTestToken selectedNetwork={selectedNetwork} />
                   </div>
 
                   <div className="flex items-center mt-2 mb-2 bg-gray-100 rounded-md">
@@ -503,9 +493,11 @@ const App = () => {
                 {account.status === "connected" ? (
                   <div className="mt-4">
                     <MintNextUI
+                      enhancedUI={true}
                       config={config}
                       contract={getContractData(selectedNetwork, "PKPNFT")}
                       explorerUrl={`${selectedChainInfo.blockExplorerUrls[0]}/tx/`}
+                      selectedNetwork={selectedNetwork}
                     />
                   </div>
                 ) : (
@@ -600,92 +592,48 @@ const App = () => {
                   <Card className="p-6 mt-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2 text-sm">
-                        <div
-                          className="flex items-center cursor-pointer bg-gray-100 px-2 rounded-md"
-                          onClick={() =>
-                            handleCopyUrl(selectedChainInfo.chainId.toString())
-                          }
-                        >
-                          <span className="font-semibold mr-2">
-                            🔢 Chain ID:
-                          </span>
-                          <span className="flex-grow">
-                            {selectedChainInfo.chainId}
-                          </span>
-                          <Button variant="ghost" size="sm" className="ml-2">
-                            {copiedUrl ===
-                            selectedChainInfo.chainId.toString() ? (
-                              <Check className="h-4 w-4 text-green-500" />
-                            ) : (
-                              <Copy className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                        <div
-                          className="flex items-center cursor-pointer bg-gray-100 px-2 rounded-md"
-                          onClick={() =>
-                            handleCopyUrl(selectedChainInfo.chainName)
-                          }
-                        >
-                          <span className="font-semibold mr-2">
-                            🏷️ Chain Name:
-                          </span>
-                          <span className="flex-grow text-purple-700">
-                            {selectedChainInfo.chainName}
-                          </span>
-                          <Button variant="ghost" size="sm" className="ml-2">
-                            {copiedUrl === selectedChainInfo.chainName ? (
-                              <Check className="h-4 w-4 text-green-500" />
-                            ) : (
-                              <Copy className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                        <div
-                          className="flex items-center cursor-pointer bg-gray-100 px-2 rounded-md"
-                          onClick={() =>
-                            handleCopyUrl(selectedChainInfo.nativeCurrency.name)
-                          }
-                        >
-                          <span className="font-semibold mr-2">
-                            💰 Native Currency:
-                          </span>
-                          <span className="flex-grow text-green-600">
-                            {selectedChainInfo.nativeCurrency.name} (
-                            {selectedChainInfo.nativeCurrency.symbol})
-                          </span>
-                          <Button variant="ghost" size="sm" className="ml-2">
-                            {copiedUrl ===
-                            selectedChainInfo.nativeCurrency.name ? (
-                              <Check className="h-4 w-4 text-green-500" />
-                            ) : (
-                              <Copy className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                        <div
-                          className="flex items-center cursor-pointer bg-gray-100 px-2 rounded-md"
-                          onClick={() =>
-                            handleCopyUrl(
-                              selectedChainInfo.nativeCurrency.decimals.toString()
-                            )
-                          }
-                        >
-                          <span className="font-semibold mr-2">
-                            🔢 Decimals:
-                          </span>
-                          <span className="flex-grow">
-                            {selectedChainInfo.nativeCurrency.decimals}
-                          </span>
-                          <Button variant="ghost" size="sm" className="ml-2">
-                            {copiedUrl ===
-                            selectedChainInfo.nativeCurrency.decimals.toString() ? (
-                              <Check className="h-4 w-4 text-green-500" />
-                            ) : (
-                              <Copy className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
+                        {[
+                          {
+                            label: "🔢 Chain ID:",
+                            value: selectedChainInfo.chainId,
+                            colorClass: "",
+                          },
+                          {
+                            label: "🏷️ Chain Name:",
+                            value: selectedChainInfo.chainName,
+                            colorClass: "text-purple-700",
+                          },
+                          {
+                            label: "💰 Native Currency:",
+                            value: `${selectedChainInfo.nativeCurrency.name} (${selectedChainInfo.nativeCurrency.symbol})`,
+                            colorClass: "text-green-600",
+                          },
+                          {
+                            label: "🔢 Decimals:",
+                            value: selectedChainInfo.nativeCurrency.decimals,
+                            colorClass: "",
+                          },
+                        ].map((item, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center cursor-pointer bg-gray-100 px-2 py-1 rounded-md"
+                            onClick={() => handleCopyUrl(item.value.toString())}
+                          >
+                            <span className="font-semibold mr-2">
+                              {item.label}
+                            </span>
+                            <span className={`flex-grow ${item.colorClass}`}>
+                              {item.value}
+                            </span>
+                            <Button variant="ghost" size="sm" className="ml-2">
+                              {copiedUrl === item.value.toString() ? (
+                                <Check className="h-4 w-4 text-green-500" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        ))}
                       </div>
                       <div className="space-y-2 text-sm">
                         <div>
@@ -694,7 +642,7 @@ const App = () => {
                             {selectedChainInfo.rpcUrls.map((url, index) => (
                               <li
                                 key={index}
-                                className="flex items-center bg-gray-100 px-2 rounded-md cursor-pointer"
+                                className="flex items-center bg-gray-100 px-2 py-1 rounded-md cursor-pointer"
                                 onClick={() => handleCopyUrl(url)}
                               >
                                 <span className="truncate flex-grow text-gray-700">
@@ -724,7 +672,7 @@ const App = () => {
                               (url, index) => (
                                 <li
                                   key={index}
-                                  className="flex items-center bg-gray-100 px-2 rounded-md cursor-pointer"
+                                  className="flex items-center bg-gray-100 px-2 py-1 rounded-md cursor-pointer"
                                   onClick={() => handleCopyUrl(url)}
                                 >
                                   <span className="truncate flex-grow text-gray-700">
