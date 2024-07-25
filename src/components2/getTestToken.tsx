@@ -16,6 +16,6 @@ const GetTestToken: React.FC<{ selectedNetwork: string }> = ({
       Get test tokens
     </a>
   );
-};
+};  
 
 export default GetTestToken;
