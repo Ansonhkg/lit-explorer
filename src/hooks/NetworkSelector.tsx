@@ -21,7 +21,13 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({
 }) => {
   return (
     <div className="space-y-2">
-      <h3 className="text-lg font-semibold">Select Network</h3>
+      <h3 className="text-lg font-semibold">
+        🌶️ Hot Pick: Choose Your Network!
+      </h3>
+      <p className="text-xs opacity-50 hover:opacity-1 text-gray-600">
+        🌶️ Decentralised network | 🫑 Centralised network
+      </p>
+
       <Select
         onValueChange={(value) =>
           handleNetworkChange(value as LIT_NETWORK_TYPES)
@@ -31,6 +37,7 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({
         <SelectTrigger className="w-full border-purple-200">
           <SelectValue placeholder="Select a network" />
         </SelectTrigger>
+
         <SelectContent>
           {networkOptions.map((option) => (
             <SelectItem key={option.value} value={option.value}>
@@ -39,9 +46,6 @@ export const NetworkSelector: React.FC<NetworkSelectorProps> = ({
           ))}
         </SelectContent>
       </Select>
-      <p className="text-xs opacity-50 hover:opacity-1 text-gray-600 mt-1">
-        🌶️ Decentralised network | 🫑 Centralised network
-      </p>
     </div>
   );
 };

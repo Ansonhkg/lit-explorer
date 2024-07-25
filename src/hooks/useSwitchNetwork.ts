@@ -1,8 +1,8 @@
 import { useConfig, useConnect, useDisconnect, useSwitchChain } from "wagmi";
 
 export const useSwitchNetwork = () => {
-  const config = useConfig();
-  const { connectAsync } = useConnect();
+  // const config = useConfig();
+  // const { connectAsync } = useConnect();
 
   const { chains, switchChain } = useSwitchChain();
 

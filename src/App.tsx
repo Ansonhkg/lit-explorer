@@ -1,23 +1,13 @@
-import React, { useEffect, useRef, useState } from "react";
-import {
-  useAccount,
-  useConnect,
-  useDisconnect,
-  useConfig,
-  useChainId,
-} from "wagmi";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -27,48 +17,40 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Editor from "@monaco-editor/react";
-import {
-  Search,
-  Book,
-  MessageCircle,
-  Copy,
-  Check,
-  Wallet,
-  ChevronDown,
-} from "lucide-react";
-
 import {
   LIT_NETWORK,
   LIT_NETWORK_TYPES,
   METAMASK_CHAIN_INFO_BY_NETWORK,
   NETWORK_CONTEXT_BY_NETWORK,
 } from "@lit-protocol/constants";
-import { LitNetworkContext } from "./types";
-import { useNetworkSelection } from "./hooks/useNetworkSelection";
-import { NetworkSelector } from "./hooks/NetworkSelector";
+import Editor from "@monaco-editor/react";
+import { readContracts, writeContract } from "@wagmi/core";
+import {
+  Check,
+  ChevronDown,
+  Copy,
+  PlayCircle,
+  Search,
+  Wallet,
+} from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  useAccount,
+  useChainId,
+  useConfig,
+  useConnect,
+  useDisconnect,
+} from "wagmi";
+import { NetworkSelector } from "./hooks/NetworkSelector";
+import { useNetworkSelection } from "./hooks/useNetworkSelection";
 import { useSwitchNetwork } from "./hooks/useSwitchNetwork";
+import { getTabValue, TabType, VALID_TABS } from "./utils/tabs";
+import { LitNetworkContext } from "./types";
+import { ContractType, getContractData } from "./utils/contracts";
 
-// const NETWORKS = (Object.keys(LIT_NETWORK) as (keyof typeof LIT_NETWORK)[])
-//   .filter((network) => {
-//     return network !== "Custom" && network !== "Localhost";
-//   })
-//   .sort(
-//     (a, b) => (a.includes("Datil") ? -1 : 1) - (b.includes("Datil") ? -1 : 1)
-//   );
 const shortenAddress = (address: string) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
-};
-
-// Mock function to generate a derived Ethereum address from a public key
-const deriveMockEthAddress = (publicKey: string) => {
-  return `0x${publicKey.slice(-40)}`;
 };
 
 // Mock function to generate NFTs for the profile page
@@ -106,8 +88,17 @@ const getContracts = (network: LIT_NETWORK_TYPES) => {
 };
 
 const App = () => {
+  // -- lit contract interactions
+
+  // -- write contracts
+  // const { writeContract } = useWriteContract();
+  // const {readContrac} = useReadContract();
+
   // -- copy
   const [isCopied, setIsCopied] = useState(false);
+  const [copiedItems, setCopiedItems] = useState<{ [key: string]: boolean }>(
+    {}
+  );
 
   const handleCopyAddress = () => {
     if (!account.address) {
@@ -120,6 +111,14 @@ const App = () => {
     setTimeout(() => setIsCopied(false), 2000);
   };
 
+  const handleCopyABI = (identifier: string, abi: string) => {
+    navigator.clipboard.writeText(abi);
+    setCopiedItems((prev) => ({ ...prev, [identifier]: true }));
+    setTimeout(() => {
+      setCopiedItems((prev) => ({ ...prev, [identifier]: false }));
+    }, 2000);
+  };
+
   // -- wallets
   const [isWalletOptionsOpen, setIsWalletOptionsOpen] = useState(false);
 
@@ -128,7 +127,7 @@ const App = () => {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState(() => {
     const path = location.pathname.slice(1);
-    return path || "mint-pkp";
+    return path || "";
   });
 
   const handleTabChange = (value: string) => {
@@ -136,11 +135,13 @@ const App = () => {
     navigate(`/${value}`);
   };
   useEffect(() => {
-    const path = location.pathname.slice(1);
-    if (path) {
+    const path = location.pathname.slice(1) as TabType;
+    if (!VALID_TABS.includes(path)) {
+      navigate("/");
+    } else {
       setActiveTab(path);
     }
-  }, [location]);
+  }, [location, navigate]);
 
   // -- networks
   const handleCustomNetworkChange = async (network: LIT_NETWORK_TYPES) => {
@@ -161,15 +162,21 @@ const App = () => {
   const { selectedNetwork, handleNetworkChange, networkOptions } =
     useNetworkSelection(handleCustomNetworkChange);
 
+  // const result = useReadContract({
+  //   abi: getContractData(selectedNetwork, "PKPNFT").ABI,
+  //   address: getContractData(selectedNetwork, "PKPNFT").address,
+  //   functionName: "mintCost",
+  // });
+
+  // console.log("result", result);
+  const config = useConfig();
+
   const useNetwork = () => {
     const chainId = useChainId();
-    const config = useConfig();
     const chain = config.chains.find((c) => c.id === chainId);
     return { chain };
   };
 
-  const [mockPublicKeys, setMockPublicKeys] = useState<string[]>([]);
-  const [newPublicKey, setNewPublicKey] = useState("");
   const [code, setCode] = useState("// Write your code here");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [ipfsHash, setIpfsHash] = useState("");
@@ -227,14 +234,6 @@ const App = () => {
   };
 
   const isCorrectNetwork = chain?.id === selectedChainInfo.chainId;
-
-  // Mock write operation
-  const handleAddPublicKey = () => {
-    if (newPublicKey && !mockPublicKeys.includes(newPublicKey)) {
-      setMockPublicKeys([...mockPublicKeys, newPublicKey]);
-      setNewPublicKey("");
-    }
-  };
 
   // Mock IPFS upload
   const handleUploadToIPFS = () => {
@@ -381,6 +380,14 @@ const App = () => {
       <main className="flex-grow p-4">
         <Card className="w-full max-w-4xl mx-auto bg-white shadow-xl">
           <CardContent className="p-6">
+            <div className="space-y-6 mb-4">
+              <NetworkSelector
+                selectedNetwork={selectedNetwork}
+                handleNetworkChange={handleNetworkChange}
+                networkOptions={networkOptions}
+              />
+            </div>
+
             {/* -- Validations -- */}
             {!isCorrectNetwork && (
               <Alert variant="destructive" className="mb-6">
@@ -426,38 +433,101 @@ const App = () => {
             <Tabs value={activeTab} onValueChange={handleTabChange}>
               <TabsList className="grid w-full grid-cols-4 bg-[#27233B]">
                 <TabsTrigger
-                  value="mint-pkp"
+                  value={getTabValue("")}
                   className="bg-red data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
                 >
                   Mint a new PKP
                 </TabsTrigger>
                 <TabsTrigger
-                  value="create-action"
+                  value={getTabValue("create-action")}
                   className="data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
                 >
                   Create Action
                 </TabsTrigger>
                 <TabsTrigger
-                  value="profile"
+                  value={getTabValue("profile")}
                   className="data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
                 >
                   Profile
                 </TabsTrigger>
                 <TabsTrigger
-                  value="contracts"
+                  value={getTabValue("contracts")}
                   className="data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
                 >
                   Contracts
                 </TabsTrigger>
               </TabsList>
-              <TabsContent value="mint-pkp">
-                <div className="space-y-6">
-                  <NetworkSelector
-                    selectedNetwork={selectedNetwork}
-                    handleNetworkChange={handleNetworkChange}
-                    networkOptions={networkOptions}
-                  />
-                </div>
+              <TabsContent value="">
+                <button
+                  onClick={async () => {
+                    const pkpNftContract = getContractData(
+                      selectedNetwork,
+                      "PKPNFT"
+                    );
+                    console.log("pkpNftContract:", pkpNftContract);
+                    const _tx = await writeContract(config, {
+                      abi: [
+                        {
+                          inputs: [
+                            {
+                              internalType: "uint256",
+                              name: "keyType",
+                              type: "uint256",
+                            },
+                          ],
+                          name: "mintNext",
+                          outputs: [
+                            {
+                              internalType: "uint256",
+                              name: "",
+                              type: "uint256",
+                            },
+                          ],
+                          stateMutability: "payable",
+                          type: "function",
+                        },
+                      ],
+                      address: pkpNftContract.address,
+                      functionName: "mintNext",
+                      args: [2n],
+                      // value: 2n,
+                    });
+                    console.log("tx:", _tx);
+
+                    return;
+
+                    const result = await readContracts(config, {
+                      contracts: [
+                        {
+                          address: pkpNftContract.address,
+                          abi: pkpNftContract.ABI,
+                          functionName: "mintCost",
+                        },
+                      ],
+                    });
+
+                    if (result[0].status === "failure") {
+                      console.error("Error reading contract:", result[0].error);
+                      return;
+                    }
+
+                    const mintCost = result[0].result;
+
+                    console.log("Mint cost:", mintCost);
+
+                    const tx = await writeContract(config, {
+                      abi: pkpNftContract.ABI,
+                      address: pkpNftContract.address,
+                      functionName: "mintNext",
+                      args: [2n],
+                      value: mintCost,
+                    });
+
+                    console.log("Mint transaction:", tx);
+                  }}
+                >
+                  Mint
+                </button>
               </TabsContent>
               <TabsContent value="create-action">
                 <div className="space-y-4">
@@ -512,49 +582,103 @@ const App = () => {
                 <div className="space-y-6">
                   <Card className="p-6 mt-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <p className="flex items-center">
+                      <div className="space-y-2 text-sm">
+                        <div
+                          className="flex items-center cursor-pointer bg-gray-100 px-2 rounded-md"
+                          onClick={() =>
+                            handleCopyUrl(selectedChainInfo.chainId.toString())
+                          }
+                        >
                           <span className="font-semibold mr-2">
                             🔢 Chain ID:
                           </span>
-                          <Badge variant="secondary">
+                          <span className="flex-grow">
                             {selectedChainInfo.chainId}
-                          </Badge>
-                        </p>
-                        <p className="flex items-center">
+                          </span>
+                          <Button variant="ghost" size="sm" className="ml-2">
+                            {copiedUrl ===
+                            selectedChainInfo.chainId.toString() ? (
+                              <Check className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                        <div
+                          className="flex items-center cursor-pointer bg-gray-100 px-2 rounded-md"
+                          onClick={() =>
+                            handleCopyUrl(selectedChainInfo.chainName)
+                          }
+                        >
                           <span className="font-semibold mr-2">
                             🏷️ Chain Name:
                           </span>
-                          <span className="text-purple-700">
+                          <span className="flex-grow text-purple-700">
                             {selectedChainInfo.chainName}
                           </span>
-                        </p>
-                        <p className="flex items-center">
+                          <Button variant="ghost" size="sm" className="ml-2">
+                            {copiedUrl === selectedChainInfo.chainName ? (
+                              <Check className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                        <div
+                          className="flex items-center cursor-pointer bg-gray-100 px-2 rounded-md"
+                          onClick={() =>
+                            handleCopyUrl(selectedChainInfo.nativeCurrency.name)
+                          }
+                        >
                           <span className="font-semibold mr-2">
                             💰 Native Currency:
                           </span>
-                          <span className="text-green-600">
+                          <span className="flex-grow text-green-600">
                             {selectedChainInfo.nativeCurrency.name} (
                             {selectedChainInfo.nativeCurrency.symbol})
                           </span>
-                        </p>
-                        <p className="flex items-center">
+                          <Button variant="ghost" size="sm" className="ml-2">
+                            {copiedUrl ===
+                            selectedChainInfo.nativeCurrency.name ? (
+                              <Check className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                        <div
+                          className="flex items-center cursor-pointer bg-gray-100 px-2 rounded-md"
+                          onClick={() =>
+                            handleCopyUrl(
+                              selectedChainInfo.nativeCurrency.decimals.toString()
+                            )
+                          }
+                        >
                           <span className="font-semibold mr-2">
                             🔢 Decimals:
                           </span>
-                          <Badge variant="outline">
+                          <span className="flex-grow">
                             {selectedChainInfo.nativeCurrency.decimals}
-                          </Badge>
-                        </p>
+                          </span>
+                          <Button variant="ghost" size="sm" className="ml-2">
+                            {copiedUrl ===
+                            selectedChainInfo.nativeCurrency.decimals.toString() ? (
+                              <Check className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
-                      <div className="space-y-4">
+                      <div className="space-y-2 text-sm">
                         <div>
                           <p className="font-semibold mb-2">🌐 RPC URLs:</p>
-                          <ul className="text-sm space-y-2 ">
+                          <ul className="space-y-2">
                             {selectedChainInfo.rpcUrls.map((url, index) => (
                               <li
                                 key={index}
-                                className="flex items-center bg-gray-100 rounded-md px-4"
+                                className="flex items-center bg-gray-100 px-2 rounded-md cursor-pointer"
+                                onClick={() => handleCopyUrl(url)}
                               >
                                 <span className="truncate flex-grow text-gray-700">
                                   {url}
@@ -562,7 +686,6 @@ const App = () => {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleCopyUrl(url)}
                                   className="ml-2"
                                 >
                                   {copiedUrl === url ? (
@@ -582,15 +705,32 @@ const App = () => {
                           <ul className="space-y-2">
                             {selectedChainInfo.blockExplorerUrls.map(
                               (url, index) => (
-                                <li key={index} className="break-all">
-                                  <a
-                                    href={url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline"
+                                <li
+                                  key={index}
+                                  className="flex items-center bg-gray-100 px-2 rounded-md cursor-pointer"
+                                  onClick={() => handleCopyUrl(url)}
+                                >
+                                  <span className="truncate flex-grow text-gray-700">
+                                    <a
+                                      href={url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:underline"
+                                    >
+                                      {url}
+                                    </a>
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="ml-2"
                                   >
-                                    {url}
-                                  </a>
+                                    {copiedUrl === url ? (
+                                      <Check className="h-4 w-4 text-green-500" />
+                                    ) : (
+                                      <Copy className="h-4 w-4" />
+                                    )}
+                                  </Button>
                                 </li>
                               )
                             )}
@@ -609,7 +749,15 @@ const App = () => {
                         <TableHead className="font-bold">
                           Contract Name
                         </TableHead>
-                        <TableHead className="font-bold">Address</TableHead>
+                        <TableHead className="font-bold text-right">
+                          Address
+                        </TableHead>
+                        <TableHead className="font-bold text-right">
+                          Interact
+                        </TableHead>
+                        <TableHead className="font-bold text-right">
+                          ABIs
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -620,17 +768,63 @@ const App = () => {
                             index % 2 === 0 ? "bg-purple-50" : "bg-white"
                           }
                         >
-                          <TableCell className="font-medium">
+                          <TableCell className="font-medium text-sm">
                             {contract.name}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="text-right text-sm">
+                            <div className="flex items-center justify-end space-x-2 rounded-md cursor-pointer">
+                              <a
+                                href={contract.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline flex-grow"
+                                title="View on Explorer"
+                              >
+                                {contract.address}
+                              </a>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="ml-2"
+                                onClick={() => handleCopyUrl(contract.address)}
+                              >
+                                {copiedUrl === contract.address ? (
+                                  <Check className="h-4 w-4 text-green-500" />
+                                ) : (
+                                  <Copy className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
                             <a
+                              href={`https://abi.ninja/${contract.address}/${chain?.id}`}
                               target="_blank"
-                              href={contract.url}
-                              className="text-blue-600 hover:underline"
                             >
-                              {contract.address}
+                              <PlayCircle className="h-4 w-4 m-auto text-purple-800 hover:text-purple-300" />
                             </a>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              onClick={() => {
+                                handleCopyABI(
+                                  contract.address,
+                                  JSON.stringify(
+                                    getContractData(
+                                      selectedNetwork,
+                                      contract.name as ContractType
+                                    ).ABI
+                                  )
+                                );
+                              }}
+                              className="bg-purple-200 text-purple-800 hover:bg-purple-300 hover:text-purple-900"
+                            >
+                              {copiedItems[contract.address] ? (
+                                <Check className="h-4 w-4 text-green-500" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}

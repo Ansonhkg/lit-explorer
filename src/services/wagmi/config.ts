@@ -3,7 +3,7 @@ import { Chain, mainnet, sepolia } from "wagmi/chains";
 import { metamaskChainInfo } from "@lit-protocol/constants";
 import { coinbaseWallet, injected, walletConnect } from "wagmi/connectors";
 
-const yellowstoneChain: Chain = {
+export const yellowstoneChain: Chain = {
   ...metamaskChainInfo.yellowstone,
   id: metamaskChainInfo.yellowstone.chainId,
   name: metamaskChainInfo.yellowstone.chainName,
@@ -14,7 +14,7 @@ const yellowstoneChain: Chain = {
   },
 };
 
-const chronicleChain: Chain = {
+export const chronicleChain: Chain = {
   ...metamaskChainInfo.chronicle,
   id: metamaskChainInfo.chronicle.chainId,
   name: metamaskChainInfo.chronicle.chainName,
