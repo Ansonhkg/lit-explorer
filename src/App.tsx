@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  CENTRALISATION_BY_NETWORK,
   LIT_NETWORK,
   LIT_NETWORK_TYPES,
   METAMASK_CHAIN_INFO_BY_NETWORK,
@@ -45,6 +46,12 @@ import CreateActionTab from "./components/tabs/CreateActionTab";
 import { LitNetworkContext } from "./types";
 import GetTestToken from "./components/buttons/getTestToken";
 import { shortenAddress } from "./utils";
+import {
+  determineInputType,
+  SEARCH_ROUTES,
+  SEARCH_TYPES,
+  SearchRouteType,
+} from "./configs/search";
 
 // Mock function to generate contract addresses for the contracts page
 const getContracts = (network: LIT_NETWORK_TYPES) => {
@@ -112,16 +119,42 @@ const App = () => {
     return path || "";
   });
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const query = searchQuery.trim();
+    const searchType = determineInputType(query);
+
+    switch (searchType) {
+      case SEARCH_TYPES.TOKEN_ID:
+        navigate(`/tokenId/${query}`);
+        break;
+      case SEARCH_TYPES.PUBLIC_KEY:
+        navigate(`/publicKey/${query}`);
+        break;
+      case SEARCH_TYPES.ETH_ADDRESS:
+        navigate(`//${query}`);
+        break;
+      default:
+        alert(
+          "Invalid search query. Please enter a valid Token ID, Public Key, or Ethereum Address."
+        );
+    }
+  };
+
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     navigate(`/${value}`);
   };
+
   useEffect(() => {
-    const path = location.pathname.slice(1) as TabType;
-    if (!VALID_TABS.includes(path)) {
-      navigate("/");
+    const path = location.pathname.split("/")[1] as TabType | SearchRouteType;
+    if (VALID_TABS.includes(path as TabType)) {
+      setActiveTab(path as TabType);
+    } else if (SEARCH_ROUTES.includes(path as SearchRouteType)) {
+      // For search result routes, we don't need to set an active tab
+      // but we might want to highlight a "search" tab if you have one
     } else {
-      setActiveTab(path);
+      navigate("/");
     }
   }, [location, navigate]);
 
@@ -230,35 +263,15 @@ const App = () => {
 
   const isCorrectNetwork = chain?.id === selectedChainInfo.chainId;
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const query = searchQuery.trim();
-
-    if (query.startsWith("0x") && query.length === 42) {
-      // Ethereum address
-      window.location.href = `/owners/${query}`;
-    } else if (/^\d+$/.test(query) && query.length > 50) {
-      // Token ID
-      window.location.href = `/pkps/${query}`;
-    } else if (query.startsWith("Qm") && query.length === 46) {
-      // IPFS ID
-      window.location.href = `/actions/${query}`;
-    } else {
-      alert(
-        "Invalid search query. Please enter a valid Ethereum address, token ID, or IPFS ID."
-      );
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#27233B] text-white flex flex-col font-['Space_Grotesk',sans-serif]">
-      <header className="bg-[#27233B] p-4 flex justify-between items-center shadow-md">
+      <header className="bg-[#27233B] p-4 flex justify-between items-center">
         <a href="/" className="flex items-center space-x-2">
           <img src={"/lit-v0.svg"} alt="Lit Logo" className="h-6" />
           <h1 className="text-2xl text-white">Lit Explorer</h1>
         </a>
         <div className="flex items-center space-x-4">
-          {/* ------------ SEARCH ---------- */}
+          {/* ------------ SEARCH BUTTON ---------- */}
           {/* <Button
             variant="ghost"
             onClick={() => setIsSearchOpen(true)}
@@ -267,7 +280,16 @@ const App = () => {
             <Search className="mr-2 h-4 w-4" />
             Search (Ctrl+K)
           </Button> */}
-          {/* ------------ /SEARCH ---------- */}
+          {/* ------------ /SEARCH BUTTON ---------- */}
+
+          {/* ------------ Network Selector ---------- */}
+          <NetworkSelector
+            selectedNetwork={selectedNetwork}
+            handleNetworkChange={handleNetworkChange}
+            networkOptions={networkOptions}
+          />
+          {/* ------------ /Network Selector ---------- */}
+
           <Popover
             open={isWalletOptionsOpen}
             onOpenChange={setIsWalletOptionsOpen}
@@ -377,40 +399,36 @@ const App = () => {
           </Popover>
         </div>
       </header>
-      <main className="flex-grow p-4">
-        <Card className="w-full max-w-4xl mx-auto bg-white shadow-xl">
-          <CardContent className="p-6">
-            <div className="space-y-6 mb-4">
-              <NetworkSelector
-                selectedNetwork={selectedNetwork}
-                handleNetworkChange={handleNetworkChange}
-                networkOptions={networkOptions}
-              />
-            </div>
+      <main className="flex-grow p-4 mt-10">
+        {/* ---------- Errors ---------- */}
+        <div className="max-w-3xl m-auto">
+          {!isCorrectNetwork && (
+            <Alert variant="destructive">
+              <AlertDescription>
+                Connected to the wrong network. Please switch to{" "}
+                {selectedChainInfo.chainName}.
+              </AlertDescription>
+            </Alert>
+          )}
 
-            {/* -- Validations -- */}
-            {!isCorrectNetwork && (
-              <Alert variant="destructive" className="mb-6">
-                <AlertDescription>
-                  Connected to the wrong network. Please switch to{" "}
-                  {selectedChainInfo.chainName}.
-                </AlertDescription>
-              </Alert>
-            )}
+          {status === "pending" && (
+            <Alert variant="default">
+              <AlertDescription>🔗 Connecting to wallet...</AlertDescription>
+            </Alert>
+          )}
 
-            {status === "pending" && (
-              <Alert variant="default" className="mb-6">
-                <AlertDescription>Connecting to wallet...</AlertDescription>
-              </Alert>
-            )}
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error.message}</AlertDescription>
+            </Alert>
+          )}
+        </div>
+        {/* ---------- /Errors ---------- */}
 
-            {error && (
-              <Alert variant="destructive" className="mb-6">
-                <AlertDescription>{error.message}</AlertDescription>
-              </Alert>
-            )}
-
-            {isSearchOpen && (
+        {/* ---------- Search Bar ---------- */}
+        {isSearchOpen && (
+          <Card className="w-full max-w-3xl mx-auto bg-white shadow-xl">
+            <CardContent className="p-6">
               <form onSubmit={handleSearch} className="mb-4">
                 <div className="flex space-x-2">
                   <Input
@@ -429,47 +447,54 @@ const App = () => {
                   </Button>
                 </div>
               </form>
-            )}
-            <Tabs value={activeTab} onValueChange={handleTabChange}>
-              <TabsList className="grid w-full grid-cols-4 bg-[#27233B]">
-                <TabsTrigger
-                  value={getTabValue("")}
-                  className="bg-red data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
-                >
-                  App
-                </TabsTrigger>
+            </CardContent>
+          </Card>
+        )}
+        {/* ---------- /Search Bar ---------- */}
 
-                <TabsTrigger
-                  value={getTabValue("profile")}
-                  className="data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
-                >
-                  Profile
-                </TabsTrigger>
-                <TabsTrigger
-                  value={getTabValue("create-action")}
-                  className="data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
-                >
-                  Create LitAction
-                </TabsTrigger>
+        {/* ---------- Tabs ---------- */}
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
+          <TabsList className="mt-4 max-w-3xl mx-auto grid w-full grid-cols-4 bg-[#27233B]">
+            <TabsTrigger
+              value={getTabValue("")}
+              className="bg-red data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
+            >
+              App
+            </TabsTrigger>
 
-                <TabsTrigger
-                  value={getTabValue("contracts")}
-                  className="data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
-                >
-                  Contracts
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="">
-                {account.status === "connected" ? (
-                  <MintNextUI
-                    enhancedUI={true}
-                    config={config}
-                    contract={getContractData(selectedNetwork, "PKPNFT")}
-                    explorerUrl={`${selectedChainInfo.blockExplorerUrls[0]}/tx/`}
-                    selectedNetwork={selectedNetwork}
-                  />
-                ) : (
-                  <div className="mt-4">
+            <TabsTrigger
+              value={getTabValue("profile")}
+              className="data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
+            >
+              Profile
+            </TabsTrigger>
+            <TabsTrigger
+              value={getTabValue("create-action")}
+              className="data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
+            >
+              Create Lit Action
+            </TabsTrigger>
+
+            <TabsTrigger
+              value={getTabValue("contracts")}
+              className="data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
+            >
+              Contracts
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="" className="w-full max-w-3xl mx-auto">
+            <Card className="rounded-lg border shadow-xl text-card-foreground w-full max-w-3xl mx-auto bg-white shadow-xl">
+              <CardContent className="p-6 ">
+                <div className="space-y-4">
+                  {account.status === "connected" ? (
+                    <MintNextUI
+                      enhancedUI={true}
+                      config={config}
+                      contract={getContractData(selectedNetwork, "PKPNFT")}
+                      explorerUrl={`${selectedChainInfo.blockExplorerUrls[0]}/tx/`}
+                      selectedNetwork={selectedNetwork}
+                    />
+                  ) : (
                     <Alert className="border-l-4 border-green-500 bg-green-50 p-4 rounded-md shadow-md">
                       <AlertTitle className="text-xl font-semibold text-green-700">
                         Welcome to Lit Explorer! 👋🏻
@@ -493,13 +518,21 @@ const App = () => {
                         </p>
                       </AlertDescription>
                     </Alert>
-                  </div>
-                )}
-              </TabsContent>
-              <TabsContent value="create-action">
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="create-action">
+            <Card className="rounded-lg border shadow-xl text-card-foreground w-full max-w-3xl mx-auto bg-white shadow-xl">
+              <CardContent className="p-6">
                 <CreateActionTab />
-              </TabsContent>
-              <TabsContent value="profile">
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="profile">
+            <Card className="rounded-lg border shadow-xl text-card-foreground w-full max-w-3xl mx-auto bg-white shadow-xl">
+              <CardContent className="p-6">
                 <div className="space-y-4">
                   <PKPsUI
                     config={config}
@@ -512,8 +545,12 @@ const App = () => {
                     selectedNetwork={selectedNetwork}
                   />
                 </div>
-              </TabsContent>
-              <TabsContent value="contracts">
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="contracts">
+            <Card className="rounded-lg border shadow-xl text-card-foreground w-full max-w-3xl mx-auto bg-white shadow-xl">
+              <CardContent className="p-6">
                 <div className="space-y-6">
                   <Card className="p-6 mt-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -722,10 +759,11 @@ const App = () => {
                     </TableBody>
                   </Table>
                 </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+        {/* ---------- /Tabs ---------- */}
       </main>
       <footer className="bg-[#27233B] p-4 flex justify-between items-center">
         <div className="flex items-center space-x-4">
@@ -754,8 +792,30 @@ const App = () => {
             Blog
           </a>
         </div>
-        <div className="text-white">
-          © {new Date().getFullYear()} Lit Protocol
+        <div>
+          <p className="mt-1 text-xs">
+            <span
+              className={
+                CENTRALISATION_BY_NETWORK[LIT_NETWORK[selectedNetwork]] ===
+                "centralised"
+                  ? "text-white"
+                  : "text-gray-500"
+              }
+            >
+              🫑 Centralised
+            </span>
+            &nbsp; | &nbsp;
+            <span
+              className={
+                CENTRALISATION_BY_NETWORK[LIT_NETWORK[selectedNetwork]] ===
+                "decentralised"
+                  ? "text-white"
+                  : "text-gray-500"
+              }
+            >
+              🌶️ Decentralised
+            </span>{" "}
+          </p>
         </div>
       </footer>
     </div>

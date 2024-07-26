@@ -20,15 +20,12 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
   networkOptions,
 }) => {
   return (
-    <div className="space-y-2">
-      <div>
-        <h3 className="text-xl font-semibold">
-          🔥 Hot Pick: Choose Your Network!
-        </h3>
+    <div className="space-y-2 text-black">
+      {/* <div>
         <p className="mt-1 text-xs opacity-50 hover:opacity-1 text-gray-600">
           🌶️ Decentralised network | 🫑 Centralised network
         </p>
-      </div>
+      </div> */}
 
       <Select
         onValueChange={(value) =>

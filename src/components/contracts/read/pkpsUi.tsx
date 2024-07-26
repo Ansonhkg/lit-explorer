@@ -40,15 +40,16 @@ interface PKPsUIProp extends BaseUiProps {
   selectedNetwork: string;
 }
 
-const CopyableCell: React.FC<{ content: string; truncate?: boolean }> = ({
-  content,
-  truncate = false,
-}) => {
+const CopyableCell: React.FC<{
+  value: string;
+  content: string;
+  truncate?: boolean;
+}> = ({ value, content, truncate = false }) => {
   const [isCopied, setIsCopied] = useState(false);
 
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(content);
+      await navigator.clipboard.writeText(value);
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     } catch (err) {
@@ -330,6 +331,7 @@ const PKPsUI: React.FC<PKPsUIProp> = ({
                   >
                     <TableCell>
                       <CopyableCell
+                        value={token.tokenId.toString()}
                         content={shortenAddress(token.tokenId.toString(), {
                           start: 8,
                           end: 10,
@@ -338,6 +340,7 @@ const PKPsUI: React.FC<PKPsUIProp> = ({
                     </TableCell>
                     <TableCell>
                       <CopyableCell
+                        value={token.publicKey}
                         content={shortenAddress(token.publicKey, {
                           start: 8,
                           end: 10,
@@ -345,7 +348,10 @@ const PKPsUI: React.FC<PKPsUIProp> = ({
                       />
                     </TableCell>
                     <TableCell>
-                      <CopyableCell content={token.ethAddress} />
+                      <CopyableCell
+                        value={token.ethAddress}
+                        content={token.ethAddress}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}
