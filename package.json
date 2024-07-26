@@ -8,7 +8,7 @@
     "api": "bun run ./api/index.ts",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "concurrently \"vite preview\" \"bun run ./api/index.ts\""
+    "preview": "concurrently \"vite preview\" \"PORT=4444 bun run ./api/index.ts\""
   },
   "dependencies": {
     "@lit-protocol/constants": "^6.3.0",
