@@ -1,3 +1,5 @@
+import PKPsUI from "@/components/contracts/read/pkpsUi";
+import MintNextUI from "@/components/contracts/write/mintNextUi";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,15 +25,7 @@ import {
   METAMASK_CHAIN_INFO_BY_NETWORK,
   NETWORK_CONTEXT_BY_NETWORK,
 } from "@lit-protocol/constants";
-import {
-  Check,
-  ChevronDown,
-  Copy,
-  ExternalLink,
-  PlayCircle,
-  Search,
-  Wallet,
-} from "lucide-react";
+import { Check, ChevronDown, Copy, PlayCircle, Wallet } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -42,32 +36,17 @@ import {
   useConnect,
   useDisconnect,
 } from "wagmi";
-import PKPsUI from "./func-components/read/pkpsUi";
-import MintNextUI from "./func-components/write/mintNextUi";
+import { ContractType, getContractData } from "./configs/contracts";
+import { getTabValue, TabType, VALID_TABS } from "./configs/tabs";
 import NetworkSelector from "./hooks/NetworkSelector";
 import useNetworkSelection from "./hooks/useNetworkSelection";
 import useSwitchNetwork from "./hooks/useSwitchNetwork";
-import GetTestToken from "./lib/getTestToken";
-import MyEditorComponent from "./lib/MyEditorComponent";
+import CreateActionTab from "./components/tabs/CreateActionTab";
 import { LitNetworkContext } from "./types";
-import { ContractType, getContractData } from "./utils/contracts";
-import { getTabValue, TabType, VALID_TABS } from "./utils/tabs";
-import uploadToIPFS from "./utils/upload";
-import CreateActionTab from "./lib/CreateActionTab";
+import GetTestToken from "./components/buttons/getTestToken";
 
 const shortenAddress = (address: string) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
-};
-
-// Mock function to generate NFTs for the profile page
-const generateMockNFTs = () => {
-  return Array(5)
-    .fill(null)
-    .map((_, index) => ({
-      id: index + 1,
-      name: `NFT #${index + 1}`,
-      image: `/api/placeholder/200/200?text=NFT ${index + 1}`,
-    }));
 };
 
 // Mock function to generate contract addresses for the contracts page
@@ -195,10 +174,8 @@ const App = () => {
   };
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [ipfsHash, setIpfsHash] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [mockNFTs] = useState(generateMockNFTs());
   const [mockContracts, setMockContracts] = useState(
     getContracts(selectedNetwork)
   );
@@ -256,12 +233,6 @@ const App = () => {
 
   const isCorrectNetwork = chain?.id === selectedChainInfo.chainId;
 
-  // Mock IPFS upload
-  const handleUploadToIPFS = async () => {
-    const ipfsId = await uploadToIPFS(code);
-    setIpfsHash(ipfsId);
-  };
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const query = searchQuery.trim();
@@ -280,13 +251,6 @@ const App = () => {
         "Invalid search query. Please enter a valid Ethereum address, token ID, or IPFS ID."
       );
     }
-  };
-
-  const [code, setCode] = useState<string>("");
-
-  const handleCodeChange = (newCode: string) => {
-    console.log(newCode);
-    setCode(newCode);
   };
 
   return (
@@ -540,21 +504,6 @@ const App = () => {
               </TabsContent>
               <TabsContent value="profile">
                 <div className="space-y-4">
-                  {/* <h3 className="text-lg font-semibold">Your NFTs</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    {mockNFTs.map((nft) => (
-                      <Card key={nft.id} className="border border-purple-200">
-                        <CardContent className="p-4">
-                          <img
-                            src={nft.image}
-                            alt={nft.name}
-                            className="w-full h-auto mb-2 rounded"
-                          />
-                          <p className="text-center">{nft.name}</p>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div> */}
                   <PKPsUI
                     config={config}
                     contract={getContractData(selectedNetwork, "PKPNFT")}

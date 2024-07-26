@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { BaseUiProps } from "../types";
 import { readContracts } from "@wagmi/core";
-import { ContractData } from "@/utils/contracts";
+import { ContractData } from "@/configs/contracts";
 import { PKPInfo } from "@/types";
 import { computeAddress } from "ethers/lib/utils";
 import { Buffer } from "buffer";
@@ -27,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { BaseUiProps } from "../types";
 
 // Configurable constants
 const TOKENS_PER_PAGE = 5;

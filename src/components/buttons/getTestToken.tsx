@@ -1,4 +1,4 @@
-import { FAUCET_URL_BY_NETWORK } from "@/utils/mappers";
+import { FAUCET_URL_BY_NETWORK } from "@/configs/mappers";
 import { LIT_NETWORK, LIT_NETWORK_TYPES } from "@lit-protocol/constants";
 
 const GetTestToken: React.FC<{ selectedNetwork: string }> = ({
@@ -16,6 +16,6 @@ const GetTestToken: React.FC<{ selectedNetwork: string }> = ({
       Get test tokens
     </a>
   );
-};  
+};
 
 export default GetTestToken;

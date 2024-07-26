@@ -1,3 +1,9 @@
+/**
+ * Uploads the provided code to IPFS and returns the CID (Content Identifier) of the uploaded data.
+ * @param code The code to be uploaded to IPFS.
+ * @returns A Promise that resolves to the CID of the uploaded data.
+ * @throws If there is an error during the upload process.
+ */
 const uploadToIPFS = async (code: string): Promise<string> => {
   try {
     const res = await fetch("/api/lit-action/upload", {

@@ -1,11 +1,11 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import MyEditorComponent from "@/lib/MyEditorComponent";
-import uploadToIPFS from "@/utils/upload";
+import uploadToIPFS from "@/apis/upload";
 import { Check, Copy, ExternalLink, Loader2, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import Confetti from "react-confetti";
 import { useWindowSize } from "react-use";
+import MyEditorComponent from "../sections/MyEditorComponent";
 
 const CreateActionTab = () => {
   const [code, setCode] = useState<string>("");

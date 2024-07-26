@@ -1,30 +1,22 @@
-import { useState } from "react";
 import {
+  ICON_BY_CENTRALISATION,
+  ICON_BY_CENTRALISATION_KEYS,
+} from "@/configs/mappers";
+import { DEFAULT_NETWORK, NETWORKS } from "@/configs/networks";
+import {
+  CENTRALISATION_BY_NETWORK,
   LIT_NETWORK,
   LIT_NETWORK_TYPES,
-  CENTRALISATION_BY_NETWORK,
 } from "@lit-protocol/constants";
-
-const NETWORKS = (Object.keys(LIT_NETWORK) as (keyof typeof LIT_NETWORK)[])
-  .filter((network) => {
-    return network !== "Custom" && network !== "Localhost";
-  })
-  .sort(
-    (a, b) => (a.includes("Datil") ? -1 : 1) - (b.includes("Datil") ? -1 : 1)
-  );
+import { useState } from "react";
 
 const useNetworkSelection = (
   onNetworkChange?: (network: LIT_NETWORK_TYPES) => void
 ) => {
   const [selectedNetwork, setSelectedNetwork] =
-    useState<LIT_NETWORK_TYPES>("DatilDev");
+    useState<LIT_NETWORK_TYPES>(DEFAULT_NETWORK);
 
   const handleNetworkChange = (network: LIT_NETWORK_TYPES) => {
-    console.log(
-      `[useNetworkSelection] handleNetworkChange: ${network}. onNetworkChange is ${
-        onNetworkChange ? "defined" : "undefined"
-      }`
-    );
     setSelectedNetwork(network);
 
     if (onNetworkChange) {
@@ -35,10 +27,11 @@ const useNetworkSelection = (
   const networkOptions = NETWORKS.map((network) => ({
     value: network,
     label: network,
-    icon:
-      CENTRALISATION_BY_NETWORK[LIT_NETWORK[network]] === "decentralised"
-        ? "🌶️"
-        : "🫑",
+    icon: ICON_BY_CENTRALISATION[
+      CENTRALISATION_BY_NETWORK[
+        LIT_NETWORK[network]
+      ] as ICON_BY_CENTRALISATION_KEYS
+    ],
   }));
 
   return {

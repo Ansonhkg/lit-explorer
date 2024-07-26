@@ -17,6 +17,10 @@ export const FAUCET_URL_BY_NETWORK: {
   "datil-test": YELLOWSTONE_FAUCET_URL,
 } as const;
 
+/**
+ * Configuration object that determines whether to use gas adjustment by network.
+ * The keys represent the network names, and the values represent whether to use gas adjustment for that network.
+ */
 export const USE_GAS_ADJUSTMENT_BY_NETWORK: {
   [key: string]: boolean;
 } = {
@@ -26,3 +30,13 @@ export const USE_GAS_ADJUSTMENT_BY_NETWORK: {
   "datil-dev": true,
   "datil-test": true,
 };
+
+/**
+ * Maps centralisation values to corresponding icons.
+ */
+export const ICON_BY_CENTRALISATION = {
+  centralised: "🫑",
+  decentralised: "🌶️",
+} as const;
+
+export type ICON_BY_CENTRALISATION_KEYS = keyof typeof ICON_BY_CENTRALISATION;

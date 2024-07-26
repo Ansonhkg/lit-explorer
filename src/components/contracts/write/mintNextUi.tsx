@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import Confetti from "react-confetti";
 import { useWindowSize } from "react-use";
-import { BaseUiProps } from "../types";
 import {
   readContracts,
   writeContract,
@@ -11,9 +10,10 @@ import {
 import { parseGwei } from "viem";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { USE_GAS_ADJUSTMENT_BY_NETWORK } from "@/utils/mappers";
+import { USE_GAS_ADJUSTMENT_BY_NETWORK } from "@/configs/mappers";
 import { LIT_NETWORK, LIT_NETWORK_TYPES } from "@lit-protocol/constants";
-import GetTestToken from "@/lib/getTestToken";
+import { BaseUiProps } from "../types";
+import GetTestToken from "@/components/buttons/getTestToken";
 
 // Configurable constants
 const BUTTON_TEXT = "Mint a new PKP!";

@@ -1,3 +1,6 @@
+/**
+ * An array of valid tabs for this app.
+ */
 export const VALID_TABS = [
   "",
   "api",
