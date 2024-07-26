@@ -65,7 +65,7 @@ const CreateActionTab = () => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-purple-100 to-indigo-100 p-4 rounded-lg shadow-md">
+      <div className="mt-4 bg-gradient-to-r from-purple-100 to-indigo-100 p-4 rounded-lg shadow-md">
         <a
           href="https://actions-docs.litprotocol.com/"
           target="_blank"

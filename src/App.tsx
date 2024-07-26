@@ -797,7 +797,15 @@ const App = () => {
             rel="noopener noreferrer"
             className="text-white hover:underline"
           >
-            Support
+            Community
+          </a>
+          <a
+            href="https://spark.litprotocol.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-white hover:underline"
+          >
+            Blog
           </a>
         </div>
         <div className="text-white">
