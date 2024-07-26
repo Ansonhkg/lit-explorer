@@ -1,19 +1,30 @@
 const uploadToIPFS = async (code: string): Promise<string> => {
-  const res = await fetch("/api/lit-action/upload", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ code }),
-  });
+  try {
+    const res = await fetch("/api/lit-action/upload", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ code }),
+    });
 
-  const ipfsData = await res.json();
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message);
+    }
 
-  console.log("ipfsData:", ipfsData);
+    const ipfsData = await res.json();
 
-  const cid = ipfsData.data.IpfsHash;
+    console.log("ipfsData:", ipfsData);
 
-  return cid;
+    const cid = ipfsData.data.IpfsHash;
+
+    return cid;
+  } catch (e: any) {
+    throw new Error(
+      "❌ Failed to upload to IPFS: " + JSON.stringify(e.message)
+    );
+  }
 };
 
 export default uploadToIPFS;

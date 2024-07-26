@@ -2,11 +2,16 @@ import express from "express";
 import pinataSDK from "@pinata/sdk";
 import { Readable } from "stream";
 import { PINATA_PIN_NAME } from "../src/shared";
+import cors from "cors";
 
 const API = process.env.PINATA_API ?? "";
 const SECRET = process.env.PINATA_SECRET ?? "";
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim())
+  : ["http://localhost:3000"];
 
 console.log(`📍 Pinata Pin Name: "${PINATA_PIN_NAME}"`);
+console.log(`🌐 Allowed Origins: ${ALLOWED_ORIGINS.join(", ")}`);
 
 if (!API || !SECRET) {
   console.error(
@@ -17,8 +22,47 @@ if (!API || !SECRET) {
 
 const app = express();
 
+// Strict CORS configuration
+const corsOptions = {
+  origin: function (
+    origin: string | undefined,
+    callback: (err: Error | null, allow?: boolean) => void
+  ) {
+    // Check if the origin is in the allowed list
+    if (origin && ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  optionsSuccessStatus: 200,
+};
+
+// Apply CORs
+app.use((req, res, next) => {
+  cors(corsOptions)(req, res, (err) => {
+    if (err) {
+      // Store the CORS error in the request object
+      req.corsError = err;
+    }
+    next();
+  });
+});
+
 // Add middleware to parse JSON bodies
 app.use(express.json());
+
+// Custom middleware to handle CORS errors
+app.use((req, res, next) => {
+  if (req.corsError) {
+    res.status(403).json({
+      error: "CORS Error",
+      message: req.corsError.message,
+    });
+  } else {
+    next();
+  }
+});
 
 app.post("/api/lit-action/upload", async (req, res) => {
   const { code } = req.body;
