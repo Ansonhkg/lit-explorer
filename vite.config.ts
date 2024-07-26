@@ -7,6 +7,13 @@ export default defineConfig({
   server: {
     host: "0.0.0.0", // Exposes the server to all network interfaces
     port: 4173, // Specify the port you want to use
+    proxy: {
+      "/api": {
+        target: "http://localhost:4444",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   define: {
     global: "window",

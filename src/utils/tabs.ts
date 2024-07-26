@@ -1,5 +1,6 @@
 export const VALID_TABS = [
   "",
+  "api",
   "create-action",
   "profile",
   "contracts",

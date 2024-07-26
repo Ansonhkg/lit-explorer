@@ -13,11 +13,11 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { USE_GAS_ADJUSTMENT_BY_NETWORK } from "@/utils/mappers";
 import { LIT_NETWORK, LIT_NETWORK_TYPES } from "@lit-protocol/constants";
-import GetTestToken from "@/components2/getTestToken";
+import GetTestToken from "@/lib/getTestToken";
 
 // Configurable constants
 const BUTTON_TEXT = "Mint a new PKP!";
-const GAS_LIMIT_INCREASE = 105;
+const GAS_LIMIT_INCREASE = 110;
 
 interface MintNextUIProps extends BaseUiProps {
   explorerUrl: string;
@@ -167,7 +167,7 @@ const MintNextUI: React.FC<MintNextUIProps> = ({
         {txHash && (
           <Alert className={enhancedUI ? "bg-green-50 border-green-200" : ""}>
             <AlertDescription className={enhancedUI ? "text-green-700" : ""}>
-              <span className="font-semibold">Minting successful!</span>
+              <span className="font-semibold">🎉 Minting successful!</span>
               <br />
               View transaction:
               <a

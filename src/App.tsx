@@ -28,6 +28,7 @@ import {
   Check,
   ChevronDown,
   Copy,
+  ExternalLink,
   PlayCircle,
   Search,
   Wallet,
@@ -51,7 +52,8 @@ import { ContractType, getContractData } from "./utils/contracts";
 import { FAUCET_URL_BY_NETWORK } from "./utils/mappers";
 import MintNextUI from "./func-components/write/mintNextUi";
 import PKPsUI from "./func-components/read/pkpsUi";
-import GetTestToken from "./components2/getTestToken";
+import GetTestToken from "./lib/getTestToken";
+import MyEditorComponent from "./lib/Editor";
 
 const shortenAddress = (address: string) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -92,7 +94,7 @@ const getContracts = (network: LIT_NETWORK_TYPES) => {
 };
 
 const App = () => {
-  // -- lit contract interactions
+  // -- editor
 
   // -- write contracts
   // const { writeContract } = useWriteContract();
@@ -192,7 +194,6 @@ const App = () => {
     return { chain };
   };
 
-  const [code, setCode] = useState("// Write your code here");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [ipfsHash, setIpfsHash] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -470,18 +471,20 @@ const App = () => {
                 >
                   App
                 </TabsTrigger>
-                <TabsTrigger
-                  value={getTabValue("create-action")}
-                  className="data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
-                >
-                  Create Action
-                </TabsTrigger>
+
                 <TabsTrigger
                   value={getTabValue("profile")}
                   className="data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
                 >
                   Profile
                 </TabsTrigger>
+                <TabsTrigger
+                  value={getTabValue("create-action")}
+                  className="data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
+                >
+                  Create Action
+                </TabsTrigger>
+
                 <TabsTrigger
                   value={getTabValue("contracts")}
                   className="data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
@@ -491,15 +494,13 @@ const App = () => {
               </TabsList>
               <TabsContent value="">
                 {account.status === "connected" ? (
-                  <div className="mt-4">
-                    <MintNextUI
-                      enhancedUI={true}
-                      config={config}
-                      contract={getContractData(selectedNetwork, "PKPNFT")}
-                      explorerUrl={`${selectedChainInfo.blockExplorerUrls[0]}/tx/`}
-                      selectedNetwork={selectedNetwork}
-                    />
-                  </div>
+                  <MintNextUI
+                    enhancedUI={true}
+                    config={config}
+                    contract={getContractData(selectedNetwork, "PKPNFT")}
+                    explorerUrl={`${selectedChainInfo.blockExplorerUrls[0]}/tx/`}
+                    selectedNetwork={selectedNetwork}
+                  />
                 ) : (
                   <div className="mt-4">
                     <Alert className="border-l-4 border-green-500 bg-green-50 p-4 rounded-md shadow-md">
@@ -530,18 +531,22 @@ const App = () => {
               </TabsContent>
               <TabsContent value="create-action">
                 <div className="space-y-4">
+                  <div className="bg-gradient-to-r from-purple-100 to-indigo-100 p-4 rounded-lg shadow-md">
+                    <a
+                      href="https://actions-docs.litprotocol.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between text-purple-700 hover:text-purple-900 transition-colors duration-200"
+                    >
+                      <span className=" font-semibold">
+                        Lit Actions API Documentation
+                      </span>
+                      <ExternalLink className="h-5 w-5 ml-2" />
+                    </a>
+                  </div>
                   <h3 className="text-lg font-semibold">Create Action</h3>
                   <div className="h-[400px] border border-purple-200">
-                    <Editor
-                      height="100%"
-                      defaultLanguage="javascript"
-                      defaultValue={code}
-                      onChange={(value) => setCode(value || "")}
-                      options={{
-                        minimap: { enabled: false },
-                        scrollBeyondLastLine: false,
-                      }}
-                    />
+                    <MyEditorComponent />
                   </div>
                   <Button
                     onClick={handleUploadToIPFS}
