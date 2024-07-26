@@ -1,11 +1,19 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import uploadToIPFS from "@/apis/upload";
-import { Check, Copy, ExternalLink, Loader2, Upload } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Download,
+  ExternalLink,
+  Loader2,
+  Upload,
+} from "lucide-react";
 import { useRef, useState } from "react";
 import Confetti from "react-confetti";
 import { useWindowSize } from "react-use";
 import MyEditorComponent from "../sections/MyEditorComponent";
+import { LIT_ACTION_TYPES_TS_FILE } from "@/configs/constants";
 
 const CreateActionTab = () => {
   const [code, setCode] = useState<string>("");
@@ -78,9 +86,22 @@ const CreateActionTab = () => {
           <ExternalLink className="h-5 w-5 ml-2" />
         </a>
       </div>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-xl font-semibold text-purple-800">Create Action</h3>
 
-      <h3 className="text-xl font-semibold text-purple-800">Create Action</h3>
-
+        {/* Download & save */}
+        <div className="flex justify-end mb-2 mt-auto mb-auto">
+          <a
+            href={LIT_ACTION_TYPES_TS_FILE}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center px-3 py-1.5 bg-gray-200 text-gray-700 text-xs font-medium rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200"
+          >
+            <Download className="h-3 w-3 mr-1.5" />
+            Download Type Definitions
+          </a>
+        </div>
+      </div>
       <div className="h-[400px] border border-purple-200 rounded-lg overflow-hidden">
         <MyEditorComponent onCodeChange={handleCodeChange} />
       </div>

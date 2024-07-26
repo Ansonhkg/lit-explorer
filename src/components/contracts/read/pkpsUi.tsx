@@ -27,9 +27,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BaseUiProps } from "../types";
+import { shortenAddress } from "@/utils";
 
 // Configurable constants
-const TOKENS_PER_PAGE = 5;
+const TOKENS_PER_PAGE = 10;
 const INITIAL_FETCH_COUNT = TOKENS_PER_PAGE;
 const SUBSEQUENT_FETCH_COUNT = TOKENS_PER_PAGE;
 
@@ -61,7 +62,7 @@ const CopyableCell: React.FC<{ content: string; truncate?: boolean }> = ({
 
   return (
     <div className="flex items-center space-x-2">
-      <div className="break-all text-xs">{displayContent}</div>
+      <div className="break-all">{displayContent}</div>
       <button
         onClick={copyToClipboard}
         className="p-1 hover:bg-gray-100 rounded flex-shrink-0 transition-colors duration-200"
@@ -96,6 +97,7 @@ const PKPsUI: React.FC<PKPsUIProp> = ({
   const fetchToken = useCallback(
     async (index: number): Promise<PKPInfo | null> => {
       try {
+        // Fetch the token ID
         const result = await readContracts(config, {
           contracts: [
             {
@@ -113,22 +115,30 @@ const PKPsUI: React.FC<PKPsUIProp> = ({
 
         const tokenId: any = result[0].result;
 
-        const result2 = await readContracts(config, {
-          contracts: [
-            {
-              address: pkpPermissionContract.address as `0x${string}`,
-              abi: pkpPermissionContract.ABI,
-              functionName: "getPubkey",
-              args: [tokenId],
-            },
-          ],
-        });
+        // Check if the public key is already cached
+        let publicKey = localStorage.getItem(`pkp_${tokenId}`);
+        if (!publicKey) {
+          // If not cached, fetch the public key
+          const result2 = await readContracts(config, {
+            contracts: [
+              {
+                address: pkpPermissionContract.address as `0x${string}`,
+                abi: pkpPermissionContract.ABI,
+                functionName: "getPubkey",
+                args: [tokenId],
+              },
+            ],
+          });
 
-        if (result2[0].status === "failure") {
-          return null;
+          if (result2[0].status === "failure") {
+            return null;
+          }
+
+          publicKey = result2[0].result as string;
+
+          // Store the public key in local storage
+          localStorage.setItem(`pkp_${tokenId}`, publicKey);
         }
-
-        const publicKey = result2[0].result as string;
 
         let hexlessPubKey = publicKey.startsWith("0x")
           ? publicKey.slice(2)
@@ -298,16 +308,16 @@ const PKPsUI: React.FC<PKPsUIProp> = ({
             />
           </div>
           <div className="border rounded-lg overflow-hidden">
-            <Table className="text-xs">
+            <Table>
               <TableHeader>
                 <TableRow className="bg-purple-50">
-                  <TableHead className="w-1/4 text-purple-700">
+                  <TableHead className="w-1/3 text-purple-700">
                     Token ID
                   </TableHead>
-                  <TableHead className="w-1/2 text-purple-700">
+                  <TableHead className="w-1/3 text-purple-700">
                     Public Key
                   </TableHead>
-                  <TableHead className="w-1/4 text-purple-700">
+                  <TableHead className="w-1/3 text-purple-700">
                     ETH Address
                   </TableHead>
                 </TableRow>
@@ -316,13 +326,23 @@ const PKPsUI: React.FC<PKPsUIProp> = ({
                 {paginatedTokens.map((token, index) => (
                   <TableRow
                     key={token.tokenId.toString()}
-                    className={index % 2 === 0 ? "bg-white" : "bg-purple-50"}
+                    className={index % 2 === 0 ? "bg-white" : "bg-purple-100"}
                   >
                     <TableCell>
-                      <CopyableCell content={token.tokenId.toString()} />
+                      <CopyableCell
+                        content={shortenAddress(token.tokenId.toString(), {
+                          start: 8,
+                          end: 10,
+                        })}
+                      />
                     </TableCell>
                     <TableCell>
-                      <CopyableCell content={token.publicKey} />
+                      <CopyableCell
+                        content={shortenAddress(token.publicKey, {
+                          start: 8,
+                          end: 10,
+                        })}
+                      />
                     </TableCell>
                     <TableCell>
                       <CopyableCell content={token.ethAddress} />

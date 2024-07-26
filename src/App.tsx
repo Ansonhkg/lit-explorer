@@ -44,10 +44,7 @@ import useSwitchNetwork from "./hooks/useSwitchNetwork";
 import CreateActionTab from "./components/tabs/CreateActionTab";
 import { LitNetworkContext } from "./types";
 import GetTestToken from "./components/buttons/getTestToken";
-
-const shortenAddress = (address: string) => {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
-};
+import { shortenAddress } from "./utils";
 
 // Mock function to generate contract addresses for the contracts page
 const getContracts = (network: LIT_NETWORK_TYPES) => {
@@ -452,7 +449,7 @@ const App = () => {
                   value={getTabValue("create-action")}
                   className="data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
                 >
-                  Create Action
+                  Create LitAction
                 </TabsTrigger>
 
                 <TabsTrigger
