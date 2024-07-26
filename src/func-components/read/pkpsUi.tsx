@@ -285,18 +285,18 @@ const PKPsUI: React.FC<PKPsUIProp> = ({
           )}
         </div>
       </div>
-      <div className="flex items-center space-x-2">
-        <Search className="h-4 w-4 text-gray-400" />
-        <Input
-          type="text"
-          placeholder="Filter by Token ID, Public Key, or ETH Address"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-grow"
-        />
-      </div>
       {filteredTokens.length > 0 ? (
         <>
+          <div className="flex items-center space-x-2">
+            <Search className="h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Filter by Token ID, Public Key, or ETH Address"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-grow"
+            />
+          </div>
           <div className="border rounded-lg overflow-hidden">
             <Table className="text-xs">
               <TableHeader>
@@ -359,7 +359,7 @@ const PKPsUI: React.FC<PKPsUIProp> = ({
       ) : (
         <Alert>
           <Key className="h-4 w-4 mr-2" />
-          <AlertDescription className="text-xs">
+          <AlertDescription className="text-xs mt-1">
             No tokens found for this address.
           </AlertDescription>
         </Alert>

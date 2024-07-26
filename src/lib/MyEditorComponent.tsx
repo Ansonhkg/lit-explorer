@@ -1,10 +1,29 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Editor, { Monaco } from "@monaco-editor/react";
 
-const MyEditorComponent: React.FC = () => {
+interface MyEditorComponentProps {
+  onCodeChange: (code: string) => void;
+}
+
+const MyEditorComponent: React.FC<MyEditorComponentProps> = ({
+  onCodeChange,
+}) => {
   const editorRef = React.useRef<any>(null);
 
-  const [code, setCode] = useState("// Write your code here");
+  const [code, setCode] = useState(`const go = async () => {
+  // this is the string "Hello World" for testing
+  const toSign = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100];
+  
+  // this requests a signature share from the Lit Node
+  // the signature share will be automatically returned in the HTTP response from the node
+  const sigShare = await Lit.Actions.signEcdsa({
+    toSign,
+    publicKey, // <-- You should pass this in jsParam
+    sigName: "sig1",
+  });
+};
+
+go();`);
 
   function handleEditorWillMount(monaco: Monaco) {
     // validation settings
@@ -446,6 +465,10 @@ declare namespace Lit {
     }
   }
 
+  useEffect(() => {
+    onCodeChange(code);
+  }, [code, onCodeChange]);
+
   return (
     <Editor
       height="100%"
@@ -456,6 +479,7 @@ declare namespace Lit {
       onMount={(editor) => (editorRef.current = editor)}
       options={{
         scrollBeyondLastLine: false,
+        minimap: { enabled: false },
       }}
     />
   );

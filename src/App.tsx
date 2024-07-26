@@ -23,7 +23,6 @@ import {
   METAMASK_CHAIN_INFO_BY_NETWORK,
   NETWORK_CONTEXT_BY_NETWORK,
 } from "@lit-protocol/constants";
-import Editor from "@monaco-editor/react";
 import {
   Check,
   ChevronDown,
@@ -37,23 +36,24 @@ import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   useAccount,
+  useBalance,
   useChainId,
   useConfig,
   useConnect,
   useDisconnect,
-  useBalance,
 } from "wagmi";
+import PKPsUI from "./func-components/read/pkpsUi";
+import MintNextUI from "./func-components/write/mintNextUi";
 import NetworkSelector from "./hooks/NetworkSelector";
 import useNetworkSelection from "./hooks/useNetworkSelection";
 import useSwitchNetwork from "./hooks/useSwitchNetwork";
-import { getTabValue, TabType, VALID_TABS } from "./utils/tabs";
+import GetTestToken from "./lib/getTestToken";
+import MyEditorComponent from "./lib/MyEditorComponent";
 import { LitNetworkContext } from "./types";
 import { ContractType, getContractData } from "./utils/contracts";
-import { FAUCET_URL_BY_NETWORK } from "./utils/mappers";
-import MintNextUI from "./func-components/write/mintNextUi";
-import PKPsUI from "./func-components/read/pkpsUi";
-import GetTestToken from "./lib/getTestToken";
-import MyEditorComponent from "./lib/Editor";
+import { getTabValue, TabType, VALID_TABS } from "./utils/tabs";
+import uploadToIPFS from "./utils/upload";
+import CreateActionTab from "./lib/CreateActionTab";
 
 const shortenAddress = (address: string) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -257,12 +257,9 @@ const App = () => {
   const isCorrectNetwork = chain?.id === selectedChainInfo.chainId;
 
   // Mock IPFS upload
-  const handleUploadToIPFS = () => {
-    // Simulate IPFS upload with a random hash
-    const mockIPFSHash = `Qm${Math.random()
-      .toString(36)
-      .substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`;
-    setIpfsHash(mockIPFSHash);
+  const handleUploadToIPFS = async () => {
+    const ipfsId = await uploadToIPFS(code);
+    setIpfsHash(ipfsId);
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -285,6 +282,13 @@ const App = () => {
     }
   };
 
+  const [code, setCode] = useState<string>("");
+
+  const handleCodeChange = (newCode: string) => {
+    console.log(newCode);
+    setCode(newCode);
+  };
+
   return (
     <div className="min-h-screen bg-[#27233B] text-white flex flex-col font-['Space_Grotesk',sans-serif]">
       <header className="bg-[#27233B] p-4 flex justify-between items-center shadow-md">
@@ -293,14 +297,16 @@ const App = () => {
           <h1 className="text-2xl text-white">Lit Explorer</h1>
         </a>
         <div className="flex items-center space-x-4">
-          <Button
+          {/* ------------ SEARCH ---------- */}
+          {/* <Button
             variant="ghost"
             onClick={() => setIsSearchOpen(true)}
             className="text-black hover:bg-white bg-white rounded-md "
           >
             <Search className="mr-2 h-4 w-4" />
             Search (Ctrl+K)
-          </Button>
+          </Button> */}
+          {/* ------------ /SEARCH ---------- */}
           <Popover
             open={isWalletOptionsOpen}
             onOpenChange={setIsWalletOptionsOpen}
@@ -530,38 +536,7 @@ const App = () => {
                 )}
               </TabsContent>
               <TabsContent value="create-action">
-                <div className="space-y-4">
-                  <div className="bg-gradient-to-r from-purple-100 to-indigo-100 p-4 rounded-lg shadow-md">
-                    <a
-                      href="https://actions-docs.litprotocol.com/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between text-purple-700 hover:text-purple-900 transition-colors duration-200"
-                    >
-                      <span className=" font-semibold">
-                        Lit Actions API Documentation
-                      </span>
-                      <ExternalLink className="h-5 w-5 ml-2" />
-                    </a>
-                  </div>
-                  <h3 className="text-lg font-semibold">Create Action</h3>
-                  <div className="h-[400px] border border-purple-200">
-                    <MyEditorComponent />
-                  </div>
-                  <Button
-                    onClick={handleUploadToIPFS}
-                    className="w-full bg-gradient-to-r from-[#5732AD] to-[#3E298D] hover:from-[#6842BD] hover:to-[#4E399D] text-white"
-                  >
-                    Upload to IPFS
-                  </Button>
-                  {ipfsHash && (
-                    <Alert>
-                      <AlertDescription>
-                        Uploaded to IPFS with hash: {ipfsHash}
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </div>
+                <CreateActionTab />
               </TabsContent>
               <TabsContent value="profile">
                 <div className="space-y-4">
