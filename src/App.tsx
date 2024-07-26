@@ -63,6 +63,7 @@ import AddressResult from "./components/search-results/AddressResult";
 import PublicKeyResult from "./components/search-results/PublicKeyResult";
 import TokenIdResult from "./components/search-results/TokenIdResult";
 import IPFSResult from "./components/search-results/IPFSResult";
+import WelcomeAlert from "./components/alerts/welcome";
 
 // Mock function to generate contract addresses for the contracts page
 const getContracts = (network: LIT_NETWORK_TYPES) => {
@@ -597,29 +598,7 @@ const App = () => {
                           selectedNetwork={selectedNetwork}
                         />
                       ) : (
-                        <Alert className="border-l-4 border-green-500 bg-green-50 p-4 rounded-md shadow-md">
-                          <AlertTitle className="text-xl font-semibold text-green-700">
-                            Welcome to Lit Explorer! 👋🏻
-                          </AlertTitle>
-                          <AlertDescription className="text-green-600">
-                            <p>
-                              Please sign in to your web3 account to access full
-                              features.
-                            </p>
-                            <p className="mt-2">
-                              To learn more about Programmable Key Pairs (PKPs)
-                              and Lit Actions, read our{" "}
-                              <a
-                                target="_blank"
-                                href="https://developer.litprotocol.com/"
-                                className="text-blue-500 hover:underline"
-                              >
-                                documentation
-                              </a>
-                              .
-                            </p>
-                          </AlertDescription>
-                        </Alert>
+                        <WelcomeAlert />
                       )}
                     </div>
                   </CardContent>
@@ -628,7 +607,11 @@ const App = () => {
               <TabsContent value="create-action">
                 <Card className="rounded-lg border shadow-xl text-card-foreground w-full max-w-4xl mx-auto bg-white shadow-xl">
                   <CardContent className="p-6">
-                    <CreateActionTab />
+                    {account.status === "connected" ? (
+                      <CreateActionTab />
+                    ) : (
+                      <WelcomeAlert />
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -636,16 +619,20 @@ const App = () => {
                 <Card className="rounded-lg border shadow-xl text-card-foreground w-full max-w-4xl mx-auto bg-white shadow-xl">
                   <CardContent className="p-6">
                     <div className="space-y-4">
-                      <PKPsUI
-                        config={config}
-                        contract={getContractData(selectedNetwork, "PKPNFT")}
-                        ownerAddress={account.address as string}
-                        pkpPermissionContract={getContractData(
-                          selectedNetwork,
-                          "PKPPermissions"
-                        )}
-                        selectedNetwork={selectedNetwork}
-                      />
+                      {account.status === "connected" ? (
+                        <PKPsUI
+                          config={config}
+                          contract={getContractData(selectedNetwork, "PKPNFT")}
+                          ownerAddress={account.address as string}
+                          pkpPermissionContract={getContractData(
+                            selectedNetwork,
+                            "PKPPermissions"
+                          )}
+                          selectedNetwork={selectedNetwork}
+                        />
+                      ) : (
+                        <WelcomeAlert />
+                      )}
                     </div>
                   </CardContent>
                 </Card>
