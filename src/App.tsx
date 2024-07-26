@@ -283,11 +283,11 @@ const App = () => {
     const handleKeyPress = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === "k") {
         event.preventDefault();
-        setIsSearchOpen((prev) => {
-          const newState = !prev;
-          localStorage.setItem("isSearchOpen", newState.toString());
-          return newState;
-        });
+        // setIsSearchOpen((prev) => {
+        //   const newState = !prev;
+        //   localStorage.setItem("isSearchOpen", newState.toString());
+        //   return newState;
+        // });
         setTimeout(() => {
           searchInputRef.current?.focus();
         }, 0);
