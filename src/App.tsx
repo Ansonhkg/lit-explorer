@@ -26,7 +26,14 @@ import {
   METAMASK_CHAIN_INFO_BY_NETWORK,
   NETWORK_CONTEXT_BY_NETWORK,
 } from "@lit-protocol/constants";
-import { Check, ChevronDown, Copy, PlayCircle, Wallet } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Copy,
+  PlayCircle,
+  Search,
+  Wallet,
+} from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -52,6 +59,10 @@ import {
   SEARCH_TYPES,
   SearchRouteType,
 } from "./configs/search";
+import AddressResult from "./components/search-results/AddressResult";
+import PublicKeyResult from "./components/search-results/PublicKeyResult";
+import TokenIdResult from "./components/search-results/TokenIdResult";
+import IPFSResult from "./components/search-results/IPFSResult";
 
 // Mock function to generate contract addresses for the contracts page
 const getContracts = (network: LIT_NETWORK_TYPES) => {
@@ -77,6 +88,8 @@ const getContracts = (network: LIT_NETWORK_TYPES) => {
 };
 
 const App = () => {
+  const [ipfsHash, setIpfsHash] = useState("");
+
   // -- editor
 
   // -- write contracts
@@ -122,23 +135,43 @@ const App = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const query = searchQuery.trim();
+    if (!query) return; // Avoid searching with an empty query
+
     const searchType = determineInputType(query);
+
+    console.log("query:", query);
+    console.log("searchType:", searchType);
 
     switch (searchType) {
       case SEARCH_TYPES.TOKEN_ID:
-        navigate(`/tokenId/${query}`);
+        setActiveTab(SEARCH_TYPES.TOKEN_ID);
         break;
       case SEARCH_TYPES.PUBLIC_KEY:
-        navigate(`/publicKey/${query}`);
+        setActiveTab(SEARCH_TYPES.PUBLIC_KEY);
         break;
-      case SEARCH_TYPES.ETH_ADDRESS:
-        navigate(`//${query}`);
+      case SEARCH_TYPES.ADDRESS:
+        setActiveTab(SEARCH_TYPES.ADDRESS);
+        break;
+      case SEARCH_TYPES.IPFS_CID:
+        setActiveTab(SEARCH_TYPES.IPFS_CID);
+        setIpfsHash(query);
         break;
       default:
         alert(
-          "Invalid search query. Please enter a valid Token ID, Public Key, or Ethereum Address."
+          "Invalid search query. Please enter a valid Token ID, Public Key, Ethereum Address, or IPFS CID."
         );
     }
+
+    // Update the URL to reflect the search
+    navigate(`/${searchType.toLowerCase()}/${query}`);
+  };
+
+  const handleSearchToggle = () => {
+    setIsSearchOpen((prev) => {
+      const newState = !prev;
+      localStorage.setItem("isSearchOpen", newState.toString());
+      return newState;
+    });
   };
 
   const handleTabChange = (value: string) => {
@@ -148,11 +181,15 @@ const App = () => {
 
   useEffect(() => {
     const path = location.pathname.split("/")[1] as TabType | SearchRouteType;
+    const query = location.pathname.split("/")[2];
+
+    console.log("path:", path);
+
     if (VALID_TABS.includes(path as TabType)) {
       setActiveTab(path as TabType);
     } else if (SEARCH_ROUTES.includes(path as SearchRouteType)) {
-      // For search result routes, we don't need to set an active tab
-      // but we might want to highlight a "search" tab if you have one
+      setActiveTab(path as SearchRouteType);
+      setSearchQuery(query || "");
     } else {
       navigate("/");
     }
@@ -203,7 +240,10 @@ const App = () => {
     return { chain };
   };
 
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(() => {
+    const storedState = localStorage.getItem("isSearchOpen");
+    return storedState === "true";
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [mockContracts, setMockContracts] = useState(
@@ -243,7 +283,11 @@ const App = () => {
     const handleKeyPress = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === "k") {
         event.preventDefault();
-        setIsSearchOpen((prev) => !prev);
+        setIsSearchOpen((prev) => {
+          const newState = !prev;
+          localStorage.setItem("isSearchOpen", newState.toString());
+          return newState;
+        });
         setTimeout(() => {
           searchInputRef.current?.focus();
         }, 0);
@@ -272,14 +316,14 @@ const App = () => {
         </a>
         <div className="flex items-center space-x-4">
           {/* ------------ SEARCH BUTTON ---------- */}
-          {/* <Button
+          <Button
             variant="ghost"
-            onClick={() => setIsSearchOpen(true)}
-            className="text-black hover:bg-white bg-white rounded-md "
+            onClick={handleSearchToggle}
+            className="text-white rounded-md "
           >
             <Search className="mr-2 h-4 w-4" />
             Search (Ctrl+K)
-          </Button> */}
+          </Button>
           {/* ------------ /SEARCH BUTTON ---------- */}
 
           {/* ------------ Network Selector ---------- */}
@@ -290,6 +334,7 @@ const App = () => {
           />
           {/* ------------ /Network Selector ---------- */}
 
+          {/* ------------ 💳 Wallet Connect ---------- */}
           <Popover
             open={isWalletOptionsOpen}
             onOpenChange={setIsWalletOptionsOpen}
@@ -397,11 +442,12 @@ const App = () => {
               )}
             </PopoverContent>
           </Popover>
+          {/* ------------ /💳 Wallet Connect ---------- */}
         </div>
       </header>
       <main className="flex-grow p-4 mt-10">
         {/* ---------- Errors ---------- */}
-        <div className="max-w-3xl m-auto">
+        <div className="max-w-4xl m-auto mb-4">
           {!isCorrectNetwork && (
             <Alert variant="destructive">
               <AlertDescription>
@@ -427,14 +473,14 @@ const App = () => {
 
         {/* ---------- Search Bar ---------- */}
         {isSearchOpen && (
-          <Card className="w-full max-w-3xl mx-auto bg-white shadow-xl">
-            <CardContent className="p-6">
+          <div className="w-full max-w-4xl mx-auto text-black">
+            <CardContent>
               <form onSubmit={handleSearch} className="mb-4">
                 <div className="flex space-x-2">
                   <Input
                     ref={searchInputRef}
                     type="text"
-                    placeholder="Search for address, token ID, or IPFS ID"
+                    placeholder="Search for address, token ID, public key, or IPFS ID"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="flex-grow border-purple-200"
@@ -448,321 +494,389 @@ const App = () => {
                 </div>
               </form>
             </CardContent>
-          </Card>
+          </div>
         )}
         {/* ---------- /Search Bar ---------- */}
 
+        {/* ---------- Search Results ---------- */}
+        {activeTab === SEARCH_TYPES.ADDRESS && (
+          <div className="w-full max-w-4xl mx-auto">
+            <Card className="rounded-lg border shadow-xl text-card-foreground w-full max-w-4xl mx-auto bg-white shadow-xl">
+              <CardContent className="p-6">
+                <AddressResult
+                  address={searchQuery}
+                  selectedNetwork={selectedNetwork as LIT_NETWORK_TYPES}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === SEARCH_TYPES.TOKEN_ID && (
+          <div className="w-full max-w-4xl mx-auto">
+            <Card className="rounded-lg border shadow-xl text-card-foreground w-full max-w-4xl mx-auto bg-white shadow-xl">
+              <CardContent className="p-6">
+                <TokenIdResult
+                  tokenId={searchQuery}
+                  selectedNetwork={selectedNetwork as LIT_NETWORK_TYPES}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === SEARCH_TYPES.PUBLIC_KEY && (
+          <div className="w-full max-w-4xl mx-auto">
+            <Card className="rounded-lg border shadow-xl text-card-foreground w-full max-w-4xl mx-auto bg-white shadow-xl">
+              <CardContent className="p-6">
+                <PublicKeyResult publicKey={searchQuery} />
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === SEARCH_TYPES.IPFS_CID && (
+          <div className="w-full max-w-4xl mx-auto">
+            <Card className="rounded-lg border shadow-xl text-card-foreground w-full max-w-4xl mx-auto bg-white shadow-xl">
+              <CardContent className="p-6">
+                <IPFSResult
+                  ipfsHash={ipfsHash}
+                  onCodeChange={(code) => console.log("Code changed:", code)}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* ---------- Search Results ---------- */}
+
         {/* ---------- Tabs ---------- */}
-        <Tabs value={activeTab} onValueChange={handleTabChange}>
-          <TabsList className="mt-4 max-w-3xl mx-auto grid w-full grid-cols-4 bg-[#27233B]">
-            <TabsTrigger
-              value={getTabValue("")}
-              className="bg-red data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
-            >
-              App
-            </TabsTrigger>
+        {VALID_TABS.includes(activeTab as TabType) &&
+          !SEARCH_ROUTES.includes(activeTab as any) && (
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
+              <TabsList className="mt-4 max-w-4xl mx-auto grid w-full grid-cols-4 bg-[#27233B]">
+                <TabsTrigger
+                  value={getTabValue("")}
+                  className="bg-red data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
+                >
+                  App
+                </TabsTrigger>
 
-            <TabsTrigger
-              value={getTabValue("profile")}
-              className="data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
-            >
-              Profile
-            </TabsTrigger>
-            <TabsTrigger
-              value={getTabValue("create-action")}
-              className="data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
-            >
-              Create Lit Action
-            </TabsTrigger>
+                <TabsTrigger
+                  value={getTabValue("profile")}
+                  className="data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
+                >
+                  Profile
+                </TabsTrigger>
+                <TabsTrigger
+                  value={getTabValue("create-action")}
+                  className="data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
+                >
+                  Create Lit Action
+                </TabsTrigger>
 
-            <TabsTrigger
-              value={getTabValue("contracts")}
-              className="data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
-            >
-              Contracts
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="" className="w-full max-w-3xl mx-auto">
-            <Card className="rounded-lg border shadow-xl text-card-foreground w-full max-w-3xl mx-auto bg-white shadow-xl">
-              <CardContent className="p-6 ">
-                <div className="space-y-4">
-                  {account.status === "connected" ? (
-                    <MintNextUI
-                      enhancedUI={true}
-                      config={config}
-                      contract={getContractData(selectedNetwork, "PKPNFT")}
-                      explorerUrl={`${selectedChainInfo.blockExplorerUrls[0]}/tx/`}
-                      selectedNetwork={selectedNetwork}
-                    />
-                  ) : (
-                    <Alert className="border-l-4 border-green-500 bg-green-50 p-4 rounded-md shadow-md">
-                      <AlertTitle className="text-xl font-semibold text-green-700">
-                        Welcome to Lit Explorer! 👋🏻
-                      </AlertTitle>
-                      <AlertDescription className="text-green-600">
-                        <p>
-                          Please sign in to your web3 account to access full
-                          features.
-                        </p>
-                        <p className="mt-2">
-                          To learn more about Programmable Key Pairs (PKPs) and
-                          Lit Actions, read our{" "}
-                          <a
-                            target="_blank"
-                            href="https://developer.litprotocol.com/"
-                            className="text-blue-500 hover:underline"
-                          >
-                            documentation
-                          </a>
-                          .
-                        </p>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="create-action">
-            <Card className="rounded-lg border shadow-xl text-card-foreground w-full max-w-3xl mx-auto bg-white shadow-xl">
-              <CardContent className="p-6">
-                <CreateActionTab />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="profile">
-            <Card className="rounded-lg border shadow-xl text-card-foreground w-full max-w-3xl mx-auto bg-white shadow-xl">
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <PKPsUI
-                    config={config}
-                    contract={getContractData(selectedNetwork, "PKPNFT")}
-                    ownerAddress={account.address as string}
-                    pkpPermissionContract={getContractData(
-                      selectedNetwork,
-                      "PKPPermissions"
-                    )}
-                    selectedNetwork={selectedNetwork}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="contracts">
-            <Card className="rounded-lg border shadow-xl text-card-foreground w-full max-w-3xl mx-auto bg-white shadow-xl">
-              <CardContent className="p-6">
-                <div className="space-y-6">
-                  <Card className="p-6 mt-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2 text-sm">
-                        {[
-                          {
-                            label: "🔢 Chain ID:",
-                            value: selectedChainInfo.chainId,
-                            colorClass: "",
-                          },
-                          {
-                            label: "🏷️ Chain Name:",
-                            value: selectedChainInfo.chainName,
-                            colorClass: "text-purple-700",
-                          },
-                          {
-                            label: "💰 Native Currency:",
-                            value: `${selectedChainInfo.nativeCurrency.name} (${selectedChainInfo.nativeCurrency.symbol})`,
-                            colorClass: "text-green-600",
-                          },
-                          {
-                            label: "🔢 Decimals:",
-                            value: selectedChainInfo.nativeCurrency.decimals,
-                            colorClass: "",
-                          },
-                        ].map((item, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center cursor-pointer bg-gray-100 px-2 py-1 rounded-md"
-                            onClick={() => handleCopyUrl(item.value.toString())}
-                          >
-                            <span className="font-semibold mr-2">
-                              {item.label}
-                            </span>
-                            <span className={`flex-grow ${item.colorClass}`}>
-                              {item.value}
-                            </span>
-                            <Button variant="ghost" size="sm" className="ml-2">
-                              {copiedUrl === item.value.toString() ? (
-                                <Check className="h-4 w-4 text-green-500" />
-                              ) : (
-                                <Copy className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="space-y-2 text-sm">
-                        <div>
-                          <p className="font-semibold mb-2">🌐 RPC URLs:</p>
-                          <ul className="space-y-2">
-                            {selectedChainInfo.rpcUrls.map((url, index) => (
-                              <li
-                                key={index}
-                                className="flex items-center bg-gray-100 px-2 py-1 rounded-md cursor-pointer"
-                                onClick={() => handleCopyUrl(url)}
+                <TabsTrigger
+                  value={getTabValue("contracts")}
+                  className="data-[state=active]:bg-gradient-to-r from-[#33257f] to-[#5f35b8] data-[state=active]:text-white"
+                >
+                  Contracts
+                </TabsTrigger>
+              </TabsList>
+
+              {/* ---------- Tabs Content ----------- */}
+              <TabsContent value="" className="w-full max-w-4xl mx-auto">
+                <Card className="rounded-lg border shadow-xl text-card-foreground w-full max-w-4xl mx-auto bg-white shadow-xl">
+                  <CardContent className="p-6 ">
+                    <div className="space-y-4">
+                      {account.status === "connected" ? (
+                        <MintNextUI
+                          enhancedUI={true}
+                          config={config}
+                          contract={getContractData(selectedNetwork, "PKPNFT")}
+                          explorerUrl={`${selectedChainInfo.blockExplorerUrls[0]}/tx/`}
+                          selectedNetwork={selectedNetwork}
+                        />
+                      ) : (
+                        <Alert className="border-l-4 border-green-500 bg-green-50 p-4 rounded-md shadow-md">
+                          <AlertTitle className="text-xl font-semibold text-green-700">
+                            Welcome to Lit Explorer! 👋🏻
+                          </AlertTitle>
+                          <AlertDescription className="text-green-600">
+                            <p>
+                              Please sign in to your web3 account to access full
+                              features.
+                            </p>
+                            <p className="mt-2">
+                              To learn more about Programmable Key Pairs (PKPs)
+                              and Lit Actions, read our{" "}
+                              <a
+                                target="_blank"
+                                href="https://developer.litprotocol.com/"
+                                className="text-blue-500 hover:underline"
                               >
-                                <span className="truncate flex-grow text-gray-700">
-                                  {url}
+                                documentation
+                              </a>
+                              .
+                            </p>
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="create-action">
+                <Card className="rounded-lg border shadow-xl text-card-foreground w-full max-w-4xl mx-auto bg-white shadow-xl">
+                  <CardContent className="p-6">
+                    <CreateActionTab />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="profile">
+                <Card className="rounded-lg border shadow-xl text-card-foreground w-full max-w-4xl mx-auto bg-white shadow-xl">
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <PKPsUI
+                        config={config}
+                        contract={getContractData(selectedNetwork, "PKPNFT")}
+                        ownerAddress={account.address as string}
+                        pkpPermissionContract={getContractData(
+                          selectedNetwork,
+                          "PKPPermissions"
+                        )}
+                        selectedNetwork={selectedNetwork}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="contracts">
+                <Card className="rounded-lg border shadow-xl text-card-foreground w-full max-w-4xl mx-auto bg-white shadow-xl">
+                  <CardContent className="p-6">
+                    <div className="space-y-6">
+                      <Card className="p-6 mt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2 text-sm">
+                            {[
+                              {
+                                label: "🔢 Chain ID:",
+                                value: selectedChainInfo.chainId,
+                                colorClass: "",
+                              },
+                              {
+                                label: "🏷️ Chain Name:",
+                                value: selectedChainInfo.chainName,
+                                colorClass: "text-purple-700",
+                              },
+                              {
+                                label: "💰 Native Currency:",
+                                value: `${selectedChainInfo.nativeCurrency.name} (${selectedChainInfo.nativeCurrency.symbol})`,
+                                colorClass: "text-green-600",
+                              },
+                              {
+                                label: "🔢 Decimals:",
+                                value:
+                                  selectedChainInfo.nativeCurrency.decimals,
+                                colorClass: "",
+                              },
+                            ].map((item, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center cursor-pointer bg-gray-100 px-2 py-1 rounded-md"
+                                onClick={() =>
+                                  handleCopyUrl(item.value.toString())
+                                }
+                              >
+                                <span className="font-semibold mr-2">
+                                  {item.label}
+                                </span>
+                                <span
+                                  className={`flex-grow ${item.colorClass}`}
+                                >
+                                  {item.value}
                                 </span>
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   className="ml-2"
                                 >
-                                  {copiedUrl === url ? (
+                                  {copiedUrl === item.value.toString() ? (
                                     <Check className="h-4 w-4 text-green-500" />
                                   ) : (
                                     <Copy className="h-4 w-4" />
                                   )}
                                 </Button>
-                              </li>
+                              </div>
                             ))}
-                          </ul>
-                        </div>
-                        <div>
-                          <p className="font-semibold mb-2">
-                            🔍 Block Explorer URLs:
-                          </p>
-                          <ul className="space-y-2">
-                            {selectedChainInfo.blockExplorerUrls.map(
-                              (url, index) => (
-                                <li
-                                  key={index}
-                                  className="flex items-center bg-gray-100 px-2 py-1 rounded-md cursor-pointer"
-                                  onClick={() => handleCopyUrl(url)}
-                                >
-                                  <span className="truncate flex-grow text-gray-700">
-                                    <a
-                                      href={url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-blue-600 hover:underline"
-                                    >
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <div>
+                              <p className="font-semibold mb-2">🌐 RPC URLs:</p>
+                              <ul className="space-y-2">
+                                {selectedChainInfo.rpcUrls.map((url, index) => (
+                                  <li
+                                    key={index}
+                                    className="flex items-center bg-gray-100 px-2 py-1 rounded-md cursor-pointer"
+                                    onClick={() => handleCopyUrl(url)}
+                                  >
+                                    <span className="truncate flex-grow text-gray-700">
                                       {url}
-                                    </a>
-                                  </span>
+                                    </span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="ml-2"
+                                    >
+                                      {copiedUrl === url ? (
+                                        <Check className="h-4 w-4 text-green-500" />
+                                      ) : (
+                                        <Copy className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                            <div>
+                              <p className="font-semibold mb-2">
+                                🔍 Block Explorer URLs:
+                              </p>
+                              <ul className="space-y-2">
+                                {selectedChainInfo.blockExplorerUrls.map(
+                                  (url, index) => (
+                                    <li
+                                      key={index}
+                                      className="flex items-center bg-gray-100 px-2 py-1 rounded-md cursor-pointer"
+                                      onClick={() => handleCopyUrl(url)}
+                                    >
+                                      <span className="truncate flex-grow text-gray-700">
+                                        <a
+                                          href={url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-600 hover:underline"
+                                        >
+                                          {url}
+                                        </a>
+                                      </span>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="ml-2"
+                                      >
+                                        {copiedUrl === url ? (
+                                          <Check className="h-4 w-4 text-green-500" />
+                                        ) : (
+                                          <Copy className="h-4 w-4" />
+                                        )}
+                                      </Button>
+                                    </li>
+                                  )
+                                )}
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+
+                      <h3 className="text-2xl font-bold text-purple-800 mt-8 mb-4">
+                        📑 Contract Addresses for {selectedNetwork}
+                      </h3>
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-purple-100">
+                            <TableHead className="font-bold">
+                              Contract Name
+                            </TableHead>
+                            <TableHead className="font-bold text-right">
+                              Address
+                            </TableHead>
+                            <TableHead className="font-bold text-right">
+                              Interact
+                            </TableHead>
+                            <TableHead className="font-bold text-right">
+                              ABIs
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {mockContracts.map((contract, index) => (
+                            <TableRow
+                              key={index}
+                              className={
+                                index % 2 === 0 ? "bg-purple-50" : "bg-white"
+                              }
+                            >
+                              <TableCell className="font-medium text-sm">
+                                {contract.name}
+                              </TableCell>
+                              <TableCell className="text-right text-sm">
+                                <div className="flex items-center justify-end space-x-2 rounded-md cursor-pointer">
+                                  <a
+                                    href={contract.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline flex-grow"
+                                    title="View on Explorer"
+                                  >
+                                    {contract.address}
+                                  </a>
                                   <Button
                                     variant="ghost"
                                     size="sm"
                                     className="ml-2"
+                                    onClick={() =>
+                                      handleCopyUrl(contract.address)
+                                    }
                                   >
-                                    {copiedUrl === url ? (
+                                    {copiedUrl === contract.address ? (
                                       <Check className="h-4 w-4 text-green-500" />
                                     ) : (
                                       <Copy className="h-4 w-4" />
                                     )}
                                   </Button>
-                                </li>
-                              )
-                            )}
-                          </ul>
-                        </div>
-                      </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <a
+                                  href={`https://abi.ninja/${contract.address}/${chain?.id}`}
+                                  target="_blank"
+                                >
+                                  <PlayCircle className="h-4 w-4 m-auto text-purple-800 hover:text-purple-300" />
+                                </a>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  onClick={() => {
+                                    handleCopyABI(
+                                      contract.address,
+                                      JSON.stringify(
+                                        getContractData(
+                                          selectedNetwork,
+                                          contract.name as ContractType
+                                        ).ABI
+                                      )
+                                    );
+                                  }}
+                                  className="bg-purple-200 text-purple-800 hover:bg-purple-300 hover:text-purple-900"
+                                >
+                                  {copiedItems[contract.address] ? (
+                                    <Check className="h-4 w-4 text-green-500" />
+                                  ) : (
+                                    <Copy className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </div>
-                  </Card>
-
-                  <h3 className="text-2xl font-bold text-purple-800 mt-8 mb-4">
-                    📑 Contract Addresses for {selectedNetwork}
-                  </h3>
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-purple-100">
-                        <TableHead className="font-bold">
-                          Contract Name
-                        </TableHead>
-                        <TableHead className="font-bold text-right">
-                          Address
-                        </TableHead>
-                        <TableHead className="font-bold text-right">
-                          Interact
-                        </TableHead>
-                        <TableHead className="font-bold text-right">
-                          ABIs
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {mockContracts.map((contract, index) => (
-                        <TableRow
-                          key={index}
-                          className={
-                            index % 2 === 0 ? "bg-purple-50" : "bg-white"
-                          }
-                        >
-                          <TableCell className="font-medium text-sm">
-                            {contract.name}
-                          </TableCell>
-                          <TableCell className="text-right text-sm">
-                            <div className="flex items-center justify-end space-x-2 rounded-md cursor-pointer">
-                              <a
-                                href={contract.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline flex-grow"
-                                title="View on Explorer"
-                              >
-                                {contract.address}
-                              </a>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="ml-2"
-                                onClick={() => handleCopyUrl(contract.address)}
-                              >
-                                {copiedUrl === contract.address ? (
-                                  <Check className="h-4 w-4 text-green-500" />
-                                ) : (
-                                  <Copy className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <a
-                              href={`https://abi.ninja/${contract.address}/${chain?.id}`}
-                              target="_blank"
-                            >
-                              <PlayCircle className="h-4 w-4 m-auto text-purple-800 hover:text-purple-300" />
-                            </a>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              onClick={() => {
-                                handleCopyABI(
-                                  contract.address,
-                                  JSON.stringify(
-                                    getContractData(
-                                      selectedNetwork,
-                                      contract.name as ContractType
-                                    ).ABI
-                                  )
-                                );
-                              }}
-                              className="bg-purple-200 text-purple-800 hover:bg-purple-300 hover:text-purple-900"
-                            >
-                              {copiedItems[contract.address] ? (
-                                <Check className="h-4 w-4 text-green-500" />
-                              ) : (
-                                <Copy className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          )}
         {/* ---------- /Tabs ---------- */}
       </main>
       <footer className="bg-[#27233B] p-4 flex justify-between items-center">

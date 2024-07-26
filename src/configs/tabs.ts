@@ -7,6 +7,7 @@ export const VALID_TABS = [
   "create-action",
   "profile",
   "contracts",
+  "explore",
 ] as const;
 
 export type TabType = (typeof VALID_TABS)[number];

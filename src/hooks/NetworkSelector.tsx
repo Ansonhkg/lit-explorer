@@ -40,7 +40,7 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
         <SelectContent>
           {networkOptions.map((option) => (
             <SelectItem key={option.value} value={option.value}>
-              {option.icon} {option.label}
+              <span className="mr-2">{option.icon}</span><span className="mr-2">{option.label}</span>
             </SelectItem>
           ))}
         </SelectContent>
