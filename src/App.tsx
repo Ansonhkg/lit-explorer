@@ -219,17 +219,32 @@ const App = () => {
     useNetworkSelection(handleCustomNetworkChange);
 
   useEffect(() => {
-    const savedNetwork = localStorage.getItem(
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const networkFromUrl = urlParams.get('network') as LIT_NETWORK_TYPES;
+
+    let selectedNetwork = networkFromUrl || localStorage.getItem(
       "selectedNetwork"
     ) as LIT_NETWORK_TYPES | null;
 
-    // console.log("savedNetwork:", savedNetwork);
-    // console.log("networkOptions:", networkOptions);
-    const networkOptionValues = networkOptions.map((option) => option.value);
+    console.log("selectedNetwork:", selectedNetwork);
 
-    if (savedNetwork && networkOptionValues.includes(savedNetwork as any)) {
-      console.log("Setting network from local storage:", savedNetwork);
-      handleNetworkChange(savedNetwork);
+    // console.log("selectedNetwork:", selectedNetwork);
+    console.log("networkOptions:", networkOptions);
+    const networkOptionValues = networkOptions.map((option) => option.value.toLowerCase());
+
+    if (selectedNetwork && networkOptionValues.includes(selectedNetwork as any)) {
+
+      if (networkFromUrl) {
+        console.log("(Before) Setting network from url:", selectedNetwork);
+        // Get the original value from networkOptions
+        selectedNetwork = networkOptions.find((option) => option.value.toLowerCase() === selectedNetwork)?.value as LIT_NETWORK_TYPES;
+        console.log("(After) Setting network from url:", selectedNetwork);
+      } else {
+        console.log("Setting network from local storage:", selectedNetwork);
+      }
+
+      handleNetworkChange(selectedNetwork);
     }
   }, []);
 
@@ -898,7 +913,7 @@ const App = () => {
             <span
               className={
                 CENTRALISATION_BY_NETWORK[LIT_NETWORK[selectedNetwork]] ===
-                "centralised"
+                  "centralised"
                   ? "text-white"
                   : "text-gray-500"
               }
@@ -909,7 +924,7 @@ const App = () => {
             <span
               className={
                 CENTRALISATION_BY_NETWORK[LIT_NETWORK[selectedNetwork]] ===
-                "decentralised"
+                  "decentralised"
                   ? "text-white"
                   : "text-gray-500"
               }

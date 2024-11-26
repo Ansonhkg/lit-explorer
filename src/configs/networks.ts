@@ -1,7 +1,7 @@
 import { LIT_NETWORK } from "@lit-protocol/constants";
 
 // Configuration constants
-export const DEFAULT_NETWORK = "DatilDev" as const;
+export const DEFAULT_NETWORK = "Datil" as const;
 export const EXCLUDED_NETWORKS = ["Custom", "Localhost"];
 export const PREFERRED_NETWORK_IDENTIFIER = "Datil";
 
