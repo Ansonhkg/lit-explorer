@@ -1,5 +1,9 @@
 # Getting started
 
+```
+yarn dev
+```
+
 ## env
 
 ```
